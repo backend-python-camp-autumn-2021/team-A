@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import Supplier, Address, Customer
 
-# Register your models here.
+admin.site.register(Supplier)
+admin.site.register(Address)
+admin.site.register(Customer)

@@ -2,27 +2,6 @@ from django.db import models
 from users.models import Customer, Supplier
 
 
-class Transaction(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)    
-    pay_date = models.DateTimeField(auto_now_add=True)
-    number_of_payment = models.DateTimeField(auto_now_add=True)
-    details = models.TextField('توضیحات', null=True, blank=True)
-
-
-class Order(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    transaction = models.OneToOneField(Transaction, on_delete=models.CASCADE)
-    order_date = models.DateTimeField(auto_now_add=True)
-    shipping_date = models.DateTimeField(auto_now_add=True)
-    STATE_CHOICES = (
-        ('N', 'New'),
-        ('H', 'Hold'),
-        ('S', 'Shipped'),
-        ('D', 'Delivered'),
-        ('C', 'Closed'),
-    )
-    state= models.CharField(max_length=1,  choices=STATE_CHOICES)
-
 class Brand(models.Model):
     brand_name = models.CharField(max_length=255)
 
@@ -74,14 +53,28 @@ class CartItems(models.Model):
     quantity = models.IntegerField()
 
 class Cart(models.Model):
+    STATE_CHOICES = (
+        ('O', 'Open'),
+        ('P', 'Paid'),
+        ('S', 'Shipped'),
+        ('D', 'Delivered'),
+        ('C', 'Cancle'),
+    )
+    state = models.CharField(max_length=1,  choices=STATE_CHOICES)
     customer = models.OneToOneField(Customer, on_delete=models.CASCADE) 
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    # order = models.ForeignKey(Order, on_delete=models.CASCADE)
     
     def get_price(self):
         pass
 
     def get_quantity(self):
         pass
+
+
+class Transaction(models.Model):
+    details = models.TextField()
+    pay_date = models.DateTimeField()
+    cart = models.OneToOneField(Cart, on_delete=models.CASCADE)
 
 class Feedback(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)   
