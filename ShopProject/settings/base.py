@@ -12,10 +12,10 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
+from .env import database_keys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
@@ -27,7 +27,6 @@ SECRET_KEY = 'cre-80h*i_(u80vb$bj5zx4@)s-s6ou=%_7yc23z#y5&7#*jfm'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -70,6 +69,7 @@ TEMPLATES = [
     },
 ]
 
+
 WSGI_APPLICATION = 'ShopProject.wsgi.application'
 
 
@@ -80,8 +80,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'shopdb',
-        'USER': os.environ.get('MY_DATABASE_USER'),
-        'PASSWORD': os.environ.get('MY_DATABASE_PASSWORD'),
+        'USER': database_keys['DATABASE_USERNAME'],
+        'PASSWORD': database_keys['DATABASE_PASSWORD'],
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -125,3 +125,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'

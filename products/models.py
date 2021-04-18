@@ -5,18 +5,28 @@ from users.models import Customer, Supplier
 class Brand(models.Model):
     brand_name = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.brand_name
+
 class Category(models.Model):
     cat_name = models.CharField(max_length=255)
     subcategory = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
 
+    def __str__(self):
+        return self.cat_name
 
 class Tag(models.Model):
     tag = models.CharField(max_length=150)
 
+    def __str__(self):
+        return self.tag
 
 class Attribute(models.Model):
     name = models.CharField(max_length=100)
     value = models.CharField(max_length=150)
+
+    def __str__(self):
+        return self.name
 
 
 class Product(models.Model):
@@ -27,30 +37,20 @@ class Product(models.Model):
     price = models.FloatField()
     tag = models.ManyToManyField(Tag)
     attribute = models.ManyToManyField(Attribute)
-    image = models.ImageField()
+    image = models.ImageField(null=True, blank=True)
+    quantity = models.IntegerField(default=1)
 
-
-class ProductList(models.Model):
-    product = models.OneToOneField(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
-
-    def get_available(self):
-        return bool(self.quantity)
-
-    def reduce_product(self, N):
-        if self.quantity - N < 0:
-            return False
-        else:
-            self.quantity -= N
-
-    def increase_product(self, N):
-        self.quantity += N
+    def __str(self):
+        return self.name
 
 
 class CartItems(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     cart = models.ForeignKey('Cart', on_delete=models.CASCADE)
     quantity = models.IntegerField()
+
+    def __str__(self):
+        return self.product.name
 
 class Cart(models.Model):
     STATE_CHOICES = (
@@ -70,11 +70,18 @@ class Cart(models.Model):
     def get_quantity(self):
         pass
 
+    def __str__(self):
+        return self.customer.name
 
 class Transaction(models.Model):
     details = models.TextField()
     pay_date = models.DateTimeField()
     cart = models.OneToOneField(Cart, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.pay_date
+
+
 
 class Feedback(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)   

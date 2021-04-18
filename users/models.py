@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 
 
+
 class Address(models.Model):
     customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
     country = models.CharField(max_length=100)
@@ -40,10 +41,10 @@ class Supplier(models.Model):
     company_name = models.CharField(max_length=500)
 
     def __str__(self):
-        return self.user
+        return self.user.username
 
     def save(self, *args, **kwargs):
-        self.user= self.user.lower()
+        self.user.username= self.user.username.lower()
         return super().save(*args, **kwargs)
 
 
