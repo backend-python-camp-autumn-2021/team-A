@@ -1,51 +1,140 @@
 from django.db import models
-from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
+from django.contrib.auth.models import (
+    AbstractBaseUser, BaseUserManager, PermissionsMixin, AbstractUser
+    )
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 
+class MyUserManager(BaseUserManager):
+    def create_user(self, username, email, password=None):
+        """
+        Creates and saves a User with the given email, date of
+        birth and password.
+        """
+        if not email:
+            raise ValueError('Users must have an email address')
 
-class Address(models.Model):
-    customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
-    country = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
-    adrs = models.CharField(max_length=100)
+        user = self.model(
+            username=username,
+            email=self.normalize_email(email),
+        )
 
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self,username , email, password=None):
+        """
+        Creates and saves a superuser with the given email, date of
+        birth and password.
+        """
+        user = self.create_user(
+            username=username,
+            email=email,
+            password=password,
+        )
+        user.is_superuser=True
+        user.is_admin = True
+        user.save(using=self._db)
+        return user
+        
+
+class User(AbstractBaseUser, PermissionsMixin):
+    username_validator = UnicodeUsernameValidator()
+
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        help_text=('Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+        validators=[username_validator],
+        error_messages={
+            'unique': ("A user with that username already exists."),
+        },)
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
+    email = models.EmailField(
+        verbose_name='email address',
+        max_length=255,
+        unique=True,
+    )
+    date_joined = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=False)
+    profile_picture = models.ImageField(upload_to='profiles', null=True, blank=True)
+
+    objects = MyUserManager()
+
+    USERNAME_FIELD = 'username'
+    EMAIL_FIELD = 'email'
+    REQUIRED_FIELDS = ['email']
+
+
+    # This Fields and Properties are all required
     @property
-    def full_address(self):
-        full = self.country + self.city + self.street + self.rest
-        return full
+    def is_staff(self):
+        print(self.is_admin)
+        return self.is_admin
 
-class Customer(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    def get_full_name(self):
+        """
+        Return the first_name plus the last_name, with a space in between.
+        """
+        full_name = f'{self.first_name} {self.last_name}'
+        return full_name.strip()
+
+    def get_short_name(self):
+        """Return the short name for the user."""
+        return self.first_name
+
+    def __str__(self):
+        return self.email
+
+    def has_perm(self, perm, obj=None):
+        "Does the user have a specific permission?"
+        return True
+
+    def has_module_perms(self, app_label):
+        "Does the user have permissions to view the app `app_label`?"
+        return True
+
+
+
+class Supplier(User):
+    bank_account = models.CharField('bank account', validators=[RegexValidator(
+        regex='^[0-9]{4} [0-9]{4} [0-9]{4} [0-9]{4}$',
+        message='Length has to be more than 8 character', code='nomatch')], max_length=255)
+    company_name = models.CharField(max_length=500)
+
+    def __str__(self):
+        return f'Supplier {self.username}'
+
+
+class Customer(User):
     phone = models.IntegerField(validators=[RegexValidator('[0-9]{10}')])
     GENDER_CHOICES = (
         ('M', 'Male'),
         ('F', 'Female'),
     )
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
-    is_enabled = models.BooleanField()
-    date_joined = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return self.user
-
-    def save(self, *args, **kwargs):
-        self.user= self.user.lower()
-        return super().save(*args, **kwargs)
+        return f'Customer {self.username}'
 
 
-class Supplier(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    bank_account = models.CharField('bank account', validators=[RegexValidator(
-        regex='^[0-9]{4} [0-9]{4} [0-9]{4} [0-9]{4}$', message='Length has to be more than 8 character', code='nomatch')], max_length=255)
-    company_name = models.CharField(max_length=500)
+class Address(models.Model):
+    '''
+    abstractin address field becouse Customers can have more than one address
+    '''
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    country = models.CharField(max_length=100)
+    city = models.CharField(max_length=100)
+    adrs = models.CharField(max_length=100)
 
-    def __str__(self):
-        return self.user.username
-
-    def save(self, *args, **kwargs):
-        self.user.username= self.user.username.lower()
-        return super().save(*args, **kwargs)
-
-
-
+    @property
+    def full_address(self):
+        '''
+        return full address
+        '''
+        full = self.country + self.city + self.street + self.rest
+        return full

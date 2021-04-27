@@ -1,31 +1,74 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.http import HttpResponse
+from django.views import View
+from .models import Customer, Supplier
+from django.views.generic import CreateView, UpdateView
+from .forms import RegisterSupplierForm, RegisterCustomerForm, CustomerProfileForm, SupplierProfileForm
+from django.contrib.auth.forms import (
+    AuthenticationForm, PasswordChangeForm,
+    PasswordResetForm )
+from django.urls import reverse_lazy, reverse
 
 
-def login_page(request):
-    if request.method == 'GET':
-        destination = request.META.get('HTTP_REFERER')
-        return render(request, 'login.html', {'destination':destination})
-    elif request.method =='POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        destination = request.POST.get('destination')
+class AuthenticationView(View):
+    def get(self, request):
+        form = AuthenticationForm
+        return render(request, 'login.html', context={'form': form})
 
-        user = authenticate(username=username, password=password)
+    def post(self, request):
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
-            if destination:
-                return redirect(destination)
-            return HttpResponse('login successfully')
-        else:
-            return HttpResponse('You are not authenticated')
-            
+            return redirect(reverse('shop:home'))
+        return HttpResponse('Not Authenticated')
+
 
 
 def logout_page(request):
-    destination = request.META.get('HTTP_REFERER')
     logout(request)
-    if destination:
-        return redirect(destination)
     return HttpResponse('logout successfully')
+
+
+class RegisterSupplierView(CreateView):
+    pass
+
+
+class RegisterCustomerView(CreateView):
+    pass
+
+
+class ChangePassword(View):
+    def get(self, request):
+        pass
+
+    def post(self, request):
+        pass
+
+class ResetPassword(View):
+    def get(self, request):
+        pass
+
+    def post(self, request):
+        pass
+
+
+class CustomerProfileView(View):
+    def get(self, request):
+        if isinstance(request.user, Supplier):
+            print('supplier')
+        elif isinstance(request.user, Customer):
+            print('customer')
+        else:
+            print('fucked up')
+    def post(self, request):
+        pass
+
+class SupplierProfileView(View):
+    def get(self, request):
+        pass
+    def post(self, request):
+        pass
+

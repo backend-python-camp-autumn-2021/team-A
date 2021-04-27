@@ -8,18 +8,21 @@ class Brand(models.Model):
     def __str__(self):
         return self.brand_name
 
+
 class Category(models.Model):
     cat_name = models.CharField(max_length=255)
-    subcategory = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
+    subcategory = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='parent_cat')
 
     def __str__(self):
         return self.cat_name
+
 
 class Tag(models.Model):
     tag = models.CharField(max_length=150)
 
     def __str__(self):
         return self.tag
+
 
 class Attribute(models.Model):
     name = models.CharField(max_length=100)
@@ -30,13 +33,13 @@ class Attribute(models.Model):
 
 
 class Product(models.Model):
-    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, default="General", on_delete=models.SET_DEFAULT)
-    brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='products')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='products')
+    tag = models.ManyToManyField(Tag, related_name='products')
+    attribute = models.ManyToManyField(Attribute, related_name='products')
     name = models.CharField(max_length=255)
     price = models.FloatField()
-    tag = models.ManyToManyField(Tag)
-    attribute = models.ManyToManyField(Attribute)
     image = models.ImageField(null=True, blank=True)
     quantity = models.IntegerField(default=1)
 
@@ -44,15 +47,9 @@ class Product(models.Model):
         return self.name
 
 
-class CartItems(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    cart = models.ForeignKey('Cart', on_delete=models.CASCADE)
-    quantity = models.IntegerField()
-
-    def __str__(self):
-        return self.product.name
 
 class Cart(models.Model):
+    customer = models.OneToOneField(Customer, on_delete=models.CASCADE, related_name='cart') 
     STATE_CHOICES = (
         ('O', 'Open'),
         ('P', 'Paid'),
@@ -61,35 +58,43 @@ class Cart(models.Model):
         ('C', 'Cancle'),
     )
     state = models.CharField(max_length=1,  choices=STATE_CHOICES)
-    customer = models.OneToOneField(Customer, on_delete=models.CASCADE) 
-    # order = models.ForeignKey(Order, on_delete=models.CASCADE)
     
     def get_price(self):
         pass
 
-    def get_quantity(self):
+    def get_number_of_carts(self):
+        pass
+
+    def get_number_of_products(self):
         pass
 
     def __str__(self):
         return self.customer.name
 
-class Transaction(models.Model):
+
+class CartItems(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='cartitems')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+
+    def __str__(self):
+        return self.product.name
+
+
+class Factor(models.Model):
+    cart = models.OneToOneField(Cart, on_delete=models.CASCADE, related_name='factor')
     details = models.TextField()
-    pay_date = models.DateTimeField()
-    cart = models.OneToOneField(Cart, on_delete=models.CASCADE)
+    pay_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.pay_date
 
 
-
 class Feedback(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)   
-    product = models.ForeignKey(Product, on_delete=models.CASCADE) 
-    text = models.TextField('متن نظر')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='feedbacks') 
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='feedbacks')   
+    text = models.TextField('Feed Back Text')
     rate = models.FloatField(default=1)
 
     def __str__(self):
         return self.customer
-
-

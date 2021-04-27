@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+
+<html>
+    <body>
+        <form action="{% url 'user:register_customer' %}" method="POST">
+            {% csrf_token %}
+            {{form.as_p}}
+            <button>Submit</button>
+        </form>
+    </body>
+</html>
