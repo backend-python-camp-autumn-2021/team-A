@@ -40,6 +40,13 @@ class MyUserManager(BaseUserManager):
         return user
         
 
+
+class UserTypes(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
 class User(AbstractBaseUser, PermissionsMixin):
     username_validator = UnicodeUsernameValidator()
 
@@ -62,6 +69,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     profile_picture = models.ImageField(upload_to='profiles', null=True, blank=True)
+    user_type = models.ForeignKey(UserTypes, on_delete=models.CASCADE, null=True)
 
     objects = MyUserManager()
 
@@ -103,7 +111,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Supplier(User):
     bank_account = models.CharField('bank account', validators=[RegexValidator(
         regex='^[0-9]{4} [0-9]{4} [0-9]{4} [0-9]{4}$',
-        message='Length has to be more than 8 character', code='nomatch')], max_length=255)
+        message='Length has to be more than 8 character', code='nomatch')], max_length=20)
     company_name = models.CharField(max_length=500)
 
     def __str__(self):
@@ -111,7 +119,8 @@ class Supplier(User):
 
 
 class Customer(User):
-    phone = models.IntegerField(validators=[RegexValidator('[0-9]{10}')])
+    phone = models.CharField(max_length=12,
+        validators=[RegexValidator(regex='[0-9]{10}')])
     GENDER_CHOICES = (
         ('M', 'Male'),
         ('F', 'Female'),

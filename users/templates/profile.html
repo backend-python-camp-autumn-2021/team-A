@@ -3,8 +3,13 @@
 <html>
     <body>
         <form action="{% url 'user:profile' %}" method="POST">
+            <p>{{request.user.user_type}}</p>
+            <p>{{request.user}}</p>
             {% csrf_token %}
             {{form.as_p}}
+            <input type='hidden' value={{type}} name='type'>
+            <input type='hidden' value={{user}} name='user'>
+
             <button>Submit</button>
         </form>
     </body>

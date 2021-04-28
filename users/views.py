@@ -9,6 +9,7 @@ from django.contrib.auth.forms import (
     AuthenticationForm, PasswordChangeForm,
     PasswordResetForm )
 from django.urls import reverse_lazy, reverse
+from django.contrib import messages
 
 
 class AuthenticationView(View):
@@ -42,10 +43,20 @@ class RegisterCustomerView(CreateView):
 
 class ChangePassword(View):
     def get(self, request):
-        pass
+        form = PasswordChangeForm(request.user)
+        return render(request, 'change_password.html', {'form': form})
 
     def post(self, request):
-        pass
+        form = PasswordChangeForm(data=request.POST, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.info(request, 'Password Changed')
+            return HttpResponse('Password Changed')
+        else:
+            form = PasswordChangeForm(request.user)
+            messages.error(request, 'Password Not Changed')
+            return render(request, 'change_password.html', {'form': form})
+        
 
 class ResetPassword(View):
     def get(self, request):
@@ -55,21 +66,30 @@ class ResetPassword(View):
         pass
 
 
-class CustomerProfileView(View):
+class ProfileView(View):
     def get(self, request):
-        user = Customer.objects.filter(user_ptr_id=request.user.id)
-        if user:
-            form = CustomerProfileForm(instance=user[0])
-        else:
-            user = Supplier.objects.filter(user_ptr_id=user)
-            form = SupplierProfileForm(instance=request.user)
-        return render(request, 'profile.html', {'form': form})
+        user_type = request.user.user_type.name
+        if user_type == 'customer':
+            user = Customer.objects.get(user_ptr_id=request.user.id)
+            form = CustomerProfileForm(instance=user)
+        elif user_type == 'supplier':
+            user = Supplier.objects.get(user_ptr_id=request.user.id)
+            form = SupplierProfileForm(instance=user)
+        return render(request, 'profile.html', {'form': form, 'user': user.id, 'type': user_type})
     def post(self, request):
-        pass
+        user_type = request.POST['type']
+        user_id = request.POST['user']
+        if user_type == 'customer':
+            user = Customer.objects.get(id=user_id)
+            form = CustomerProfileForm(request.POST, instance=user)
+        elif user_type == 'supplier':
+            user = Supplier.objects.get(id=user_id)
+            form = SupplierProfileForm(request.POST,instance=user)
+        
+        if form.is_valid():
+            form.save()
+            return HttpResponse('Updated')
+        return HttpResponse('Not Valid')
 
-class SupplierProfileView(View):
-    def get(self, request):
-        pass
-    def post(self, request):
-        pass
+
 
