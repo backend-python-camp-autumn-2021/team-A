@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views import View
 from .models import Customer, Supplier
-from django.views.generic import CreateView, UpdateView
+from django.views.generic import CreateView, UpdateView, FormView
 from .forms import RegisterSupplierForm, RegisterCustomerForm, CustomerProfileForm, SupplierProfileForm
 from django.contrib.auth.forms import (
     AuthenticationForm, PasswordChangeForm,
@@ -41,21 +41,23 @@ class RegisterCustomerView(CreateView):
     pass
 
 
-class ChangePassword(View):
-    def get(self, request):
-        form = PasswordChangeForm(request.user)
-        return render(request, 'change_password.html', {'form': form})
+class ChangePassword(FormView):
+    template_name = 'change_password.html'
+    success_url = reverse_lazy('shop:home')
+    form_class = PasswordChangeForm
 
-    def post(self, request):
-        form = PasswordChangeForm(data=request.POST, user=request.user)
-        if form.is_valid():
-            form.save()
-            messages.info(request, 'Password Changed')
-            return HttpResponse('Password Changed')
-        else:
-            form = PasswordChangeForm(request.user)
-            messages.error(request, 'Password Not Changed')
-            return render(request, 'change_password.html', {'form': form})
+    def get_form_kwargs(self):
+        """Return the keyword arguments for instantiating the form."""
+        kwargs = super().get_form_kwargs()
+        ### add user request to form because it's needed
+        kwargs.update({'user': self.request.user})
+        return kwargs
+    
+    def form_valid(self, form):
+        """If the form is valid, redirect to the supplied URL."""
+        ### default form_valid() won't call form.save()
+        form.save()
+        return HttpResponseRedirect(self.get_success_url())
         
 
 class ResetPassword(View):
@@ -68,27 +70,40 @@ class ResetPassword(View):
 
 class ProfileView(View):
     def get(self, request):
-        user_type = request.user.user_type.name
+        user_type = request.user.user_type.name # get user_type
+        
         if user_type == 'customer':
+            ### query for getting customer user
             user = Customer.objects.get(user_ptr_id=request.user.id)
+            ### generate customer form with giving instance user
             form = CustomerProfileForm(instance=user)
         elif user_type == 'supplier':
             user = Supplier.objects.get(user_ptr_id=request.user.id)
             form = SupplierProfileForm(instance=user)
-        return render(request, 'profile.html', {'form': form, 'user': user.id, 'type': user_type})
+        
+        ### send user.id and user_type to prevent checking again
+        context = {
+            'form': form,
+            'user': user.id, 
+            'type': user_type
+            }
+
+        return render(request, 'profile.html', context)
+    
     def post(self, request):
-        user_type = request.POST['type']
-        user_id = request.POST['user']
-        if user_type == 'customer':
-            user = Customer.objects.get(id=user_id)
+        if request.POST['type'] == 'customer':
+            # get user with the user.id came from get
+            user = Customer.objects.get(id=request.POST['user']) 
+            # generating customer form for the request.user with data given 
             form = CustomerProfileForm(request.POST, instance=user)
-        elif user_type == 'supplier':
-            user = Supplier.objects.get(id=user_id)
+        elif request.POST['type'] == 'supplier':
+            user = Supplier.objects.get(id=request.POST['user'])
             form = SupplierProfileForm(request.POST,instance=user)
         
         if form.is_valid():
             form.save()
             return HttpResponse('Updated')
+            
         return HttpResponse('Not Valid')
 
 
