@@ -57,12 +57,13 @@ class ResetPassword(View):
 
 class CustomerProfileView(View):
     def get(self, request):
-        if isinstance(request.user, Supplier):
-            print('supplier')
-        elif isinstance(request.user, Customer):
-            print('customer')
+        user = Customer.objects.filter(user_ptr_id=request.user.id)
+        if user:
+            form = CustomerProfileForm(instance=user[0])
         else:
-            print('fucked up')
+            user = Supplier.objects.filter(user_ptr_id=user)
+            form = SupplierProfileForm(instance=request.user)
+        return render(request, 'profile.html', {'form': form})
     def post(self, request):
         pass
 
