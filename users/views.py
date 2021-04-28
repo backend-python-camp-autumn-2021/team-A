@@ -9,7 +9,10 @@ from django.contrib.auth.forms import (
     AuthenticationForm, PasswordChangeForm,
     PasswordResetForm )
 from django.urls import reverse_lazy, reverse
+from django.contrib.auth import update_session_auth_hash
+from django.contrib import messages
 
+from .models import User,Customer, Supplier
 
 class AuthenticationView(View):
     def get(self, request):
@@ -39,13 +42,21 @@ class RegisterSupplierView(CreateView):
 class RegisterCustomerView(CreateView):
     pass
 
-
-class ChangePassword(View):
-    def get(self, request):
-        pass
-
-    def post(self, request):
-        pass
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user) 
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect(reverse('shop:home'))
+        else:
+            messages.error(request, 'Please correct the error below.')
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, 'change_password.html', {
+        'form': form
+    })
 
 class ResetPassword(View):
     def get(self, request):
@@ -57,18 +68,13 @@ class ResetPassword(View):
 
 class CustomerProfileView(View):
     def get(self, request):
-        if isinstance(request.user, Supplier):
-            print('supplier')
-        elif isinstance(request.user, Customer):
-            print('customer')
-        else:
-            print('fucked up')
+        pass
     def post(self, request):
         pass
 
 class SupplierProfileView(View):
-    def get(self, request):
-        pass
-    def post(self, request):
-        pass
+        def get(self, request):
+            pass
+        def post(self, request):
+            pass
 

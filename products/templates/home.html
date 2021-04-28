@@ -4,8 +4,8 @@
         {% if request.user.is_authenticated %}
             <h1>{{request.user}}</h1>
 
-            <a href="{% url 'user:logout' %}">logout</a>
-            <a href="{% url 'user:change_password' request.user. %}">Change Password</a>
+            <a href="{% url 'user:logout' %}">logout</a><br>
+            <a href="{% url 'user:change_password' %}">Change Password</a>
 
         {% else %}
             <a href="{% url 'user:login' %}">login</a>
