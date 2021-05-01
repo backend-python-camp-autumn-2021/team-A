@@ -1,5 +1,5 @@
 *__pycache__
 env.py
 debug.log
-.vscode
+*.vscode
 venv
