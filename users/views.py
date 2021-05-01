@@ -43,6 +43,9 @@ class RegisterCustomerView(CreateView):
     pass
 
 def change_password(request):
+    '''
+    In case the user wanted to change their password.
+    '''
     if request.method == 'POST':
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
