@@ -7,4 +7,4 @@ from users.models import User, Supplier, Customer
 class HomePageView(LoginRequiredMixin, View):
     login_url = 'user:login'
     def get(self, request):
-        return render(request, 'home.html', {})
+        return render(request, 'index.html', {})

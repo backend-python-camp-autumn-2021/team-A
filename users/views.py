@@ -1,35 +1,33 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views import View
-from .models import Customer, Supplier
+from .models import Customer, Supplier, UserTypes
 from django.views.generic import CreateView, UpdateView
-from .forms import RegisterSupplierForm, RegisterCustomerForm, CustomerProfileForm, SupplierProfileForm
+from .forms import (RegisterSupplierForm, RegisterCustomerForm, PasswordResetForm,
+    CustomerProfileForm, SupplierProfileForm,
+    SupplierProfileForm, CustomerProfileForm,
+    SetPasswordForm)
 from django.contrib.auth.forms import (
     AuthenticationForm, PasswordChangeForm,
-    PasswordResetForm )
+    )
 from django.urls import reverse_lazy, reverse
-from django.contrib.auth import update_session_auth_hash
 from django.contrib import messages
+from django.contrib.auth.views import LoginView, PasswordChangeView
+from django.core.mail import send_mail
+from django.conf import settings
 
-from .models import User,Customer, Supplier
+import redis
+from .models import User
+import secrets
 
-class AuthenticationView(View):
-    def get(self, request):
-        form = AuthenticationForm
-        return render(request, 'login.html', context={'form': form})
 
-    def post(self, request):
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return redirect(reverse('shop:home'))
-        return HttpResponse('Not Authenticated')
-
+class AuthenticationView(LoginView):
+    template_name = 'login.html'
+    
 
 def logout_page(request):
+    print(request.user.user_type)
     logout(request)
     return HttpResponse('logout successfully')
 
@@ -37,59 +35,86 @@ def logout_page(request):
 class RegisterSupplierView(CreateView):
     model = Supplier
     form_class = RegisterSupplierForm
-    template_name = 'register_suplier.html'
-    success_url = reverse_lazy('users:login')
+        print('i am savin this mother fucker')
+        customer_type = UserTypes.objects.get(name='customer')
+        form.instance.user_type = customer_type
+        return super().form_valid(form)
 
 
 class RegisterCustomerView(CreateView):
     model = Customer
-    form_class = RegisterCustomerView
-    template_name = 'register_customer.html'
-    success_url = reverse_lazy('users:login')
+    template_name = 'signup.html'
+    success_url = reverse_lazy('user:login')
+
+    def form_valid(self, form):
+        supplier_type = UserTypes.objects.get(name='supplier')
+        form.instance.user_type = supplier_type
+        return super().form_valid(form)
 
 
-def change_password(request):
-    '''
-    In case the user wanted to change their password.
-    '''
-    if request.method == 'POST':
-        form = PasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user) 
-            messages.success(request, 'Your password was successfully updated!')
-            return redirect(reverse('shop:home'))
-        else:
-            messages.error(request, 'Please correct the error below.')
-    else:
-        form = PasswordChangeForm(request.user)
-    return render(request, 'change_password.html', {
-        'form': form
-    })
+class ChangePassword(PasswordChangeView):
+    template_name = 'change-password.html'
+    success_url = reverse_lazy('shop:home')
+    form_class = PasswordChangeForm
 
-class ResetPassword(View):
+
+class UpdateSupplierView(UpdateView):
+    model = Supplier
+    template_name = 'update-profile.html'
+    form_class = SupplierProfileForm
+    success_url = reverse_lazy('shop:home')
+
+
+class UpdateCustomerView(UpdateView):
+    model = Customer
+    template_name = 'update-profile.html'
+    form_class = CustomerProfileForm
+    success_url = reverse_lazy('shop:home')
+
+
+class PasswordResetView(View):
     def get(self, request):
-        pass
+        form = PasswordResetForm()
+        return render(request, 'password-reset-form.html', {'form': form})
+    
+    def post(self,request):
+        email = request.POST.get('email')
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        token = secrets.token_urlsafe(16)
+        r.set(token, email, ex=120)
+        send_mail(
+            'Reset Password',
+            f'http://localhost:8000/reset-password/{r.get(email)}',
+            settings.EMAIL_HOST_USER,
+            [email],
+            fail_silently=False,
+        )
+        r.close()
+        return render(request, 'password-reset-done.html')
 
-    def post(self, request):
-        pass
+
+class PasswordResetVerifyView(View):
+    def get(self, request, token):
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        mail = r.get(token)
+        form = SetPasswordForm()
+
+        context = {
+            'form': form,
+            'mail': mail
+        }
+        return render(request, 'password-reset-verify.html', context)
+        
+
+    def post(self, request, token):
+        pas1 = request.POST.get('password1')
+        pas2 = request.POST.get('password2')
+        mail = request.POST.get('mail')
+        user = User.objects.get(email = mail)
+        if pas1 == pas2:
+            user.set_password(pas1)
+            return redirect(reverse_lazy('shop:home'))
+        return redirect(reverse_lazy('user:set_password'))
 
 
-class CustomerProfileView(View):
-    def get(self, request):
-        user = Customer.objects.filter(user_ptr_id=request.user.id)
-        if user:
-            form = CustomerProfileForm(instance=user[0])
-        else:
-            user = Supplier.objects.filter(user_ptr_id=user)
-            form = SupplierProfileForm(instance=request.user)
-        return render(request, 'profile.html', {'form': form})
-    def post(self, request):
-        pass
-
-class SupplierProfileView(View):
-        def get(self, request):
-            pass
-        def post(self, request):
-            pass
 
