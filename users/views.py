@@ -2,109 +2,124 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views import View
-from .models import Customer, Supplier
-from django.views.generic import CreateView, UpdateView, FormView
-from .forms import RegisterSupplierForm, RegisterCustomerForm, CustomerProfileForm, SupplierProfileForm
+from .models import Customer, Supplier, UserTypes
+from django.views.generic import CreateView, UpdateView
+from .forms import (RegisterSupplierForm, RegisterCustomerForm, PasswordResetForm,
+    CustomerProfileForm, SupplierProfileForm,
+    SupplierProfileForm, CustomerProfileForm,
+    SetPasswordForm)
 from django.contrib.auth.forms import (
     AuthenticationForm, PasswordChangeForm,
-    PasswordResetForm )
+    )
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
+from django.contrib.auth.views import LoginView, PasswordChangeView
+from django.core.mail import send_mail
+from django.conf import settings
+
+import redis
+from .models import User
+import secrets
 
 
-class AuthenticationView(View):
-    def get(self, request):
-        form = AuthenticationForm
-        return render(request, 'login.html', context={'form': form})
-
-    def post(self, request):
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return redirect(reverse('shop:home'))
-        return HttpResponse('Not Authenticated')
-
-
+class AuthenticationView(LoginView):
+    template_name = 'login.html'
+    
 
 def logout_page(request):
+    print(request.user.user_type)
     logout(request)
     return HttpResponse('logout successfully')
 
 
 class RegisterSupplierView(CreateView):
-    pass
+    model = Supplier
+    form_class = RegisterSupplierForm
+    template_name = 'signup.html'
+    success_url = reverse_lazy('user:login')
+    
+    def form_valid(self, form):
+        print('i am savin this mother fucker')
+        customer_type = UserTypes.objects.get(name='customer')
+        form.instance.user_type = customer_type
+        return super().form_valid(form)
 
 
 class RegisterCustomerView(CreateView):
-    pass
+    model = Customer
+    form_class = RegisterCustomerForm
+    template_name = 'signup.html'
+    success_url = reverse_lazy('user:login')
+
+    def form_valid(self, form):
+        supplier_type = UserTypes.objects.get(name='supplier')
+        form.instance.user_type = supplier_type
+        return super().form_valid(form)
 
 
-class ChangePassword(FormView):
-    template_name = 'change_password.html'
+class ChangePassword(PasswordChangeView):
+    template_name = 'change-password.html'
     success_url = reverse_lazy('shop:home')
     form_class = PasswordChangeForm
 
-    def get_form_kwargs(self):
-        """Return the keyword arguments for instantiating the form."""
-        kwargs = super().get_form_kwargs()
-        ### add user request to form because it's needed
-        kwargs.update({'user': self.request.user})
-        return kwargs
+
+class UpdateSupplierView(UpdateView):
+    model = Supplier
+    template_name = 'update-profile.html'
+    form_class = SupplierProfileForm
+    success_url = reverse_lazy('shop:home')
+
+
+class UpdateCustomerView(UpdateView):
+    model = Customer
+    template_name = 'update-profile.html'
+    form_class = CustomerProfileForm
+    success_url = reverse_lazy('shop:home')
+
+
+class PasswordResetView(View):
+    def get(self, request):
+        form = PasswordResetForm()
+        return render(request, 'password-reset-form.html', {'form': form})
     
-    def form_valid(self, form):
-        """If the form is valid, redirect to the supplied URL."""
-        ### default form_valid() won't call form.save()
-        form.save()
-        return HttpResponseRedirect(self.get_success_url())
-        
+    def post(self,request):
+        email = request.POST.get('email')
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        token = secrets.token_urlsafe(16)
+        r.set(token, email, ex=120)
+        send_mail(
+            'Reset Password',
+            f'http://localhost:8000/reset-password/{r.get(email)}',
+            settings.EMAIL_HOST_USER,
+            [email],
+            fail_silently=False,
+        )
+        r.close()
+        return render(request, 'password-reset-done.html')
 
-class ResetPassword(View):
-    def get(self, request):
-        pass
 
-    def post(self, request):
-        pass
+class PasswordResetVerifyView(View):
+    def get(self, request, token):
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        mail = r.get(token)
+        form = SetPasswordForm()
 
-
-class ProfileView(View):
-    def get(self, request):
-        user_type = request.user.user_type.name # get user_type
-        
-        if user_type == 'customer':
-            ### query for getting customer user
-            user = Customer.objects.get(user_ptr_id=request.user.id)
-            ### generate customer form with giving instance user
-            form = CustomerProfileForm(instance=user)
-        elif user_type == 'supplier':
-            user = Supplier.objects.get(user_ptr_id=request.user.id)
-            form = SupplierProfileForm(instance=user)
-        
-        ### send user.id and user_type to prevent checking again
         context = {
             'form': form,
-            'user': user.id, 
-            'type': user_type
-            }
-
-        return render(request, 'my-account.html', context)
-    
-    def post(self, request):
-        if request.POST['type'] == 'customer':
-            # get user with the user.id came from get
-            user = Customer.objects.get(id=request.POST['user']) 
-            # generating customer form for the request.user with data given 
-            form = CustomerProfileForm(request.POST, instance=user)
-        elif request.POST['type'] == 'supplier':
-            user = Supplier.objects.get(id=request.POST['user'])
-            form = SupplierProfileForm(request.POST,instance=user)
+            'mail': mail
+        }
+        return render(request, 'password-reset-verify.html', context)
         
-        if form.is_valid():
-            form.save()
-            return HttpResponse('Updated')
-            
-        return HttpResponse('Not Valid')
+
+    def post(self, request, token):
+        pas1 = request.POST.get('password1')
+        pas2 = request.POST.get('password2')
+        mail = request.POST.get('mail')
+        user = User.objects.get(email = mail)
+        if pas1 == pas2:
+            user.set_password(pas1)
+            return redirect(reverse_lazy('shop:home'))
+        return redirect(reverse_lazy('user:set_password'))
 
 
 
