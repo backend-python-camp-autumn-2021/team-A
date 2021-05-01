@@ -26,18 +26,24 @@ class AuthenticationView(View):
         return HttpResponse('Not Authenticated')
 
 
-
 def logout_page(request):
     logout(request)
     return HttpResponse('logout successfully')
 
 
 class RegisterSupplierView(CreateView):
-    pass
+    model = Supplier
+    form_class = RegisterSupplierForm
+    template_name = 'register_suplier.html'
+    success_url = reverse_lazy('users:login')
 
 
 class RegisterCustomerView(CreateView):
-    pass
+    model = Customer
+    form_class = RegisterCustomerView
+    template_name = 'register_customer.html'
+    success_url = reverse_lazy('users:login')
+
 
 
 class ChangePassword(View):
