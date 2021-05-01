@@ -88,7 +88,7 @@ class ProfileView(View):
             'type': user_type
             }
 
-        return render(request, 'profile.html', context)
+        return render(request, 'my-account.html', context)
     
     def post(self, request):
         if request.POST['type'] == 'customer':
