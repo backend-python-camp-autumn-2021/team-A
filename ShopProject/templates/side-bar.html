@@ -7,7 +7,7 @@
                                 <ul class="navbar-nav">
                                     {% for cat in categories %}
                                     <li class="nav-item">
-                                        <a class="nav-link" href=""><i class="fa fa-female"></i>{{cat.cat_name}}</a>
+                                        <a class="nav-link" href="?cat={{cat.pk}}"><i class="fa fa-female"></i>{{cat.cat_name}}</a>
                                     </li>
                                     {% endfor %}
                                 </ul>
@@ -19,7 +19,7 @@
                             <h2 class="title">Our Brands</h2>
                             <ul>
                                 {% for brand in brands %}
-                                <li><a href="#">{{brand.brand_name}} </a><span>{{brand.get_product_number}}</span></li>
+                                <li><a href="?brand={{brand.pk}}">{{brand.brand_name}} </a><span>{{brand.get_product_number}</span></li>
                                 {% endfor %}
                             </ul>
                         </div>
@@ -27,7 +27,7 @@
                         <div class="sidebar-widget tag">
                             <h2 class="title">Tags Cloud</h2>
                             {% for tag in tags %}
-                                <a href="#">{{tag.tag}}</a>
+                                <a href="?tag={{tag.pk}}">{{tag}}</a>
                             {% endfor %}
                         </div>
                     </div>
