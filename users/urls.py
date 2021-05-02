@@ -18,6 +18,5 @@ urlpatterns =[
 
 
 
-    path('send-mail', views.sendmail)
 
 ]

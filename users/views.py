@@ -35,9 +35,12 @@ def logout_page(request):
 class RegisterSupplierView(CreateView):
     model = Supplier
     form_class = RegisterSupplierForm
-    customer_type = UserTypes.objects.get(name='customer')
-    form.instance.user_type = customer_type
-    return super().form_valid(form)
+    success_url = reverse_lazy('user:login')
+
+    def form_valid(self, form):
+        customer_type = UserTypes.objects.get(name='customer')
+        form.instance.user_type = customer_type
+        return super().form_valid(form)
 
 
 class RegisterCustomerView(CreateView):
