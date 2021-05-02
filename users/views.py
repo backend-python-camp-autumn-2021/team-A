@@ -35,10 +35,9 @@ def logout_page(request):
 class RegisterSupplierView(CreateView):
     model = Supplier
     form_class = RegisterSupplierForm
-        print('i am savin this mother fucker')
-        customer_type = UserTypes.objects.get(name='customer')
-        form.instance.user_type = customer_type
-        return super().form_valid(form)
+    customer_type = UserTypes.objects.get(name='customer')
+    form.instance.user_type = customer_type
+    return super().form_valid(form)
 
 
 class RegisterCustomerView(CreateView):
