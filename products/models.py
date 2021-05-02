@@ -8,6 +8,11 @@ class Brand(models.Model):
     def __str__(self):
         return self.brand_name
 
+    @property
+    def get_product_number(self):
+        count = self.products.count()
+        return count
+
 
 class Category(models.Model):
     cat_name = models.CharField(max_length=255)
