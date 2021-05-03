@@ -45,12 +45,20 @@ class Product(models.Model):
     attribute = models.ManyToManyField(Attribute, related_name='products')
     name = models.CharField(max_length=255)
     price = models.FloatField()
-    image = models.ImageField(null=True, blank=True)
+    image = models.ImageField(upload_to='product_img')
     quantity = models.IntegerField(default=1)
+    published_date = models.DateTimeField(auto_now_add=True)
 
     def __str(self):
         return self.name
 
+
+class ProductImage(models.Model):
+    image = models.ImageField(upload_to='product_img')
+    produc = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.produc.name
 
 
 class Cart(models.Model):

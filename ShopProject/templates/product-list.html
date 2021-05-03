@@ -72,9 +72,9 @@
                                                 <div class="dropdown">
                                                     <div class="dropdown-toggle" data-toggle="dropdown">Product short by</div>
                                                     <div class="dropdown-menu dropdown-menu-right">
-                                                        <a href="#" class="dropdown-item">Newest</a>
-                                                        <a href="#" class="dropdown-item">Popular</a>
-                                                        <a href="#" class="dropdown-item">Most sale</a>
+                                                        <a href="?sort=published_date&{{ request.GET.urlencode }}" class="dropdown-item">Newest</a>
+                                                        <a href="?sort=name&{{ request.GET.urlencode }}" class="dropdown-item">Alphabetic</a>
+                                                        <a href="?sort=price&{{ request.GET.urlencode }}" class="dropdown-item">Price</a>
                                                     </div>
                                                 </div>
                                             </div>
@@ -101,7 +101,7 @@
                                     </div>
                                 </div>
                             </div>
-                            {% for product in query_set %}
+                            {% for product in object_list %}
                             <div class="col-md-4">
                                 <div class="product-item">
                                     <div class="product-title">
@@ -113,9 +113,9 @@
                                         </div>
                                     </div>
                                     <div class="product-image">
-                                        <img src="{% static 'product.image.url' %}" alt="Product Image">
+                                        <img src="{{product.image.url}}" alt="Product Image" height="180px">
                                         <div class="product-action">
-                                            <a href="#"><i class="fa fa-search"></i></a>
+                                            <a href="{% url 'shop:product_detail' product.pk %}"><i class="fa fa-search"></i></a>
                                         </div>
                                     </div>
                                     <div class="product-price">

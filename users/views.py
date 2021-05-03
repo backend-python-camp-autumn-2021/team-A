@@ -33,25 +33,15 @@ def logout_page(request):
 
 
 class RegisterSupplierView(CreateView):
-    model = Supplier
+    template_name = 'signup.html'
     form_class = RegisterSupplierForm
     success_url = reverse_lazy('user:login')
 
-    def form_valid(self, form):
-        customer_type = UserTypes.objects.get(name='customer')
-        form.instance.user_type = customer_type
-        return super().form_valid(form)
-
 
 class RegisterCustomerView(CreateView):
-    model = Customer
+    form_class = RegisterCustomerForm
     template_name = 'signup.html'
     success_url = reverse_lazy('user:login')
-
-    def form_valid(self, form):
-        supplier_type = UserTypes.objects.get(name='supplier')
-        form.instance.user_type = supplier_type
-        return super().form_valid(form)
 
 
 class ChangePassword(PasswordChangeView):
