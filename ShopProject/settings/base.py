@@ -28,7 +28,7 @@ SECRET_KEY = 'cre-80h*i_(u80vb$bj5zx4@)s-s6ou=%_7yc23z#y5&7#*jfm'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
