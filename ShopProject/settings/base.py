@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
-from .env import database_keys
+from dotenv import load_dotenv, find_dotenv
+env_file = Path(find_dotenv(usecwd=True))
+load_dotenv(verbose=True, dotenv_path=env_file)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,8 +82,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'shopdb',
-        'USER': database_keys['DATABASE_USERNAME'],
-        'PASSWORD': database_keys['DATABASE_PASSWORD'],
+        'USER': os.environ.get('DATABASE_USERNAME'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '5432',
     }

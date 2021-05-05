@@ -11,5 +11,7 @@ admin.site.register(Factor)
 admin.site.register(Brand)
 admin.site.register(Category)
 admin.site.register(Tag)
+admin.site.register(Feedback)
+
 
 # admin.site.register(Product)

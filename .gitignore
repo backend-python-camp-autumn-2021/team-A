@@ -3,3 +3,4 @@ env.py
 debug.log
 *.vscode
 venv
+.env

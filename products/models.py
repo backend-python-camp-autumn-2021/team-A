@@ -1,5 +1,7 @@
 from django.db import models
 from users.models import Customer, Supplier
+from django.core.validators import MaxValueValidator, MinValueValidator
+
 
 
 class Brand(models.Model):
@@ -7,6 +9,11 @@ class Brand(models.Model):
 
     def __str__(self):
         return self.brand_name
+
+    @property
+    def get_product_number(self):
+        count = self.products.count()
+        return count
 
 
 class Category(models.Model):
@@ -40,12 +47,20 @@ class Product(models.Model):
     attribute = models.ManyToManyField(Attribute, related_name='products')
     name = models.CharField(max_length=255)
     price = models.FloatField()
-    image = models.ImageField(null=True, blank=True)
+    image = models.ImageField(upload_to='product_img')
     quantity = models.IntegerField(default=1)
+    published_date = models.DateTimeField(auto_now_add=True)
 
     def __str(self):
         return self.name
 
+
+class ProductImage(models.Model):
+    image = models.ImageField(upload_to='product_img')
+    produc = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.produc.name
 
 
 class Cart(models.Model):
@@ -93,8 +108,9 @@ class Factor(models.Model):
 class Feedback(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='feedbacks') 
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='feedbacks')   
+    published_date = models.DateTimeField(auto_now_add=True)
     text = models.TextField('Feed Back Text')
-    rate = models.FloatField(default=1)
+    rate = models.IntegerField(default=1, validators=[MinValueValidator(0), MaxValueValidator(5)], null=True, blank=True)
 
     def __str__(self):
-        return self.customer
+        return self.customer.username
