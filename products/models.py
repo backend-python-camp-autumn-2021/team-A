@@ -50,6 +50,7 @@ class Product(models.Model):
     image = models.ImageField(upload_to='product_img')
     quantity = models.IntegerField(default=1)
     published_date = models.DateTimeField(auto_now_add=True)
+    description = models.TextField(default="Good")
 
     def __str(self):
         return self.name
@@ -74,17 +75,22 @@ class Cart(models.Model):
     )
     state = models.CharField(max_length=1,  choices=STATE_CHOICES)
     
-    def get_price(self):
-        pass
+    @property
+    def get_total_price(self):
+        total = 0
+        for item in self.cartitems.all():
+            total += item.get_price
+        return total
 
+    @property
     def get_number_of_carts(self):
-        pass
+        return self.cartitems.all().count()
 
     def get_number_of_products(self):
         pass
 
     def __str__(self):
-        return self.customer.name
+        return self.customer.username
 
 
 class CartItems(models.Model):
@@ -94,6 +100,10 @@ class CartItems(models.Model):
 
     def __str__(self):
         return self.product.name
+
+    @property
+    def get_price(self):
+        return self.quantity * self.product.price
 
 
 class Factor(models.Model):
