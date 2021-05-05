@@ -139,7 +139,6 @@ class CartItemView(View):
     def get(self, request):
         return render(request, 'cart.html')
     
-    def delete(self, request):
 
 
 class AddToCart(CustomRequiredMixin):
