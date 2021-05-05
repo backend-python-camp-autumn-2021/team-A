@@ -7,9 +7,11 @@ from .models import Category, Tag, Brand, Product, CartItems, Cart, Feedback
 from django.db.models import Q
 from django.contrib import messages
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic import ListView, DetailView, CreateView, FormView
 from .forms import CreateCommentForm
+from django.utils.functional import SimpleLazyObject
+
 
 
 
@@ -33,12 +35,11 @@ class CustomRequiredMixin(View):
                     return redirect(redirect_url)
                 return self.user_required(request)
         else:
-            if redirect:
+            if redirect_url:
                 return redirect(redirect_url)
             return self.login_required(request)
         
         return super().dispatch(request, *args, **kwargs)
-    
     
     def check_user(self, request):
         if not self.model:
@@ -52,13 +53,11 @@ class CustomRequiredMixin(View):
         else:
             return False
 
-
     def user_required(self, request):
         messages.error(request, f'You have to be {str(self.model)} to access this page.')
         if not self.register_url:
             return HttpResponse('You have to login as supplier')
         return redirect(reverse_lazy(self.register_url))
-
 
     def login_required(self, request):
         messages.error(request, 'You have to login to system to access this page.')
@@ -78,7 +77,6 @@ class Gruoping(View):
     add this line in your get method.
     <context_name> = self.get_query_set(request, query_set=None)
     '''
-
 
     def get_context(self, context,**kwargs):
         '''
@@ -120,7 +118,11 @@ class HomePageView(ListView, Gruoping):
         context = super().get_context_data()
         return super().get_context(context)
 
+    def get_ordering(self):
+        return self.request.GET.get('sort', None)
+
     def get_queryset(self):
+        print(self.request.GET.get('sort', None))
         self.ordering = self.request.GET.get('sort', None)
         queryset = super().get_queryset()
         queryset = super().get_query_set(queryset)
@@ -129,18 +131,28 @@ class HomePageView(ListView, Gruoping):
                 Q(name__icontains=self.request.GET.get('q'))|
                 Q(description__icontains=self.request.GET.get('q'))
                 )
+        if self.ordering:
+            queryset.order_by(self.ordering)
         return queryset
 
     
-
+class CartItemView(View):
+    def get(self, request):
+        return render(request, 'cart.html')
+    
+    def delete(self, request):
+        print('hello')
 
 
 class AddToCart(CustomRequiredMixin):
+
     '''add product to cart items for requested user '''
     model = Customer
     boolean = True
 
     def post(self,request, pk):
+        # print(request.cart.)
+
         '''authenticating user'''
         self.user = self.check_user(request)
         if self.user:
@@ -158,7 +170,7 @@ class AddToCart(CustomRequiredMixin):
         CartItems.objects.create(
             cart=Cart.objects.get_or_create(customer=self.user, state='O')[0],
             product=Product.objects.get(pk=pk),
-            quantity=request.GET['quantity'],
+            quantity=request.POST['quantity'],
             )
     
     def add_to_cart_anonymous(self, request, pk):
@@ -169,7 +181,7 @@ class AddToCart(CustomRequiredMixin):
             request.session['cart'] = []
         qty = request.POST['quantity']
         request.session['cart'] += [(pk, qty)]
-
+    
 
 class ProductDetailView(DetailView):
     model = Product
@@ -216,4 +228,21 @@ class CreateCommentView(CustomRequiredMixin):
             return redirect(request.META.get('HTTP_REFERER'))
         messages.warning(request, "Comment was'nt valid") 
         return redirect(request.META.get('HTTP_REFERER'))
+
+def plus_cart(request, pk):
+    cartitem = CartItems.objects.get(pk=pk)
+    cartitem.quantity += 1
+    cartitem.save()
+    return redirect(request.META.get('HTTP_REFERER'))
+
+
+def minus_cart(request, pk):
+    cartitem = CartItems.objects.get(pk=pk)
+    cartitem.quantity -= 1
+    cartitem.save()
+    return redirect(request.META.get('HTTP_REFERER'))
+
+def remove_from_cart(request, pk):
+    cartitem = CartItems.objects.get(pk=pk).delete()
+    return redirect(request.META.get('HTTP_REFERER'))
 
