@@ -27,7 +27,6 @@ class AuthenticationView(LoginView):
     
 
 def logout_page(request):
-    print(request.user.user_type)
     logout(request)
     return HttpResponse('logout successfully')
 

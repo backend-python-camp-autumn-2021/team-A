@@ -122,7 +122,6 @@ class HomePageView(ListView, Gruoping):
         return self.request.GET.get('sort', None)
 
     def get_queryset(self):
-        print(self.request.GET.get('sort', None))
         self.ordering = self.request.GET.get('sort', None)
         queryset = super().get_queryset()
         queryset = super().get_query_set(queryset)
@@ -141,7 +140,6 @@ class CartItemView(View):
         return render(request, 'cart.html')
     
     def delete(self, request):
-        print('hello')
 
 
 class AddToCart(CustomRequiredMixin):
@@ -151,7 +149,6 @@ class AddToCart(CustomRequiredMixin):
     boolean = True
 
     def post(self,request, pk):
-        # print(request.cart.)
 
         '''authenticating user'''
         self.user = self.check_user(request)
@@ -201,7 +198,6 @@ class ProductDetailView(DetailView):
             'form': form
         }
         context.update(result)
-        print(context)
         return context
 
 
@@ -211,7 +207,6 @@ class CreateCommentView(CustomRequiredMixin):
 
     def post(self, request):
         user = super().check_user(request)
-        print(request.POST['product'])
         product = Product.objects.get(pk=request.POST['product'])
         feed = Feedback.objects.filter(
             customer=user,

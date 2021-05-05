@@ -15,7 +15,6 @@ class RegisterSupplierForm(UserCreationForm):
             '''
             assign user_type to supplier type before saving
             '''
-            print('i am saving this mother fucker')
             supplier_type = UserTypes.objects.get_or_create(name='supplier')[0]
             self.instance.user_type = supplier_type
             return super().save(*args, **kargs)
