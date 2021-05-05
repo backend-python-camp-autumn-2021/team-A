@@ -1,5 +1,7 @@
 from django.db import models
 from users.models import Customer, Supplier
+from django.core.validators import MaxValueValidator, MinValueValidator
+
 
 
 class Brand(models.Model):
@@ -106,8 +108,9 @@ class Factor(models.Model):
 class Feedback(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='feedbacks') 
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='feedbacks')   
+    published_date = models.DateTimeField(auto_now_add=True)
     text = models.TextField('Feed Back Text')
-    rate = models.FloatField(default=1)
+    rate = models.IntegerField(default=1, validators=[MinValueValidator(0), MaxValueValidator(5)], null=True, blank=True)
 
     def __str__(self):
-        return self.customer
+        return self.customer.username

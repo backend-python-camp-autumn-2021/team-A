@@ -3,12 +3,14 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from users.models import User, Supplier, Customer
-from .models import Category, Tag, Brand, Product, CartItems, Cart
+from .models import Category, Tag, Brand, Product, CartItems, Cart, Feedback
 from django.db.models import Q
 from django.contrib import messages
 from django.conf import settings
 from django.http import HttpResponse
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, CreateView, FormView
+from .forms import CreateCommentForm
+
 
 
 class CustomRequiredMixin(View):
@@ -39,7 +41,6 @@ class CustomRequiredMixin(View):
     
     
     def check_user(self, request):
-        print('in check usssssssssssssssssssssser')
         if not self.model:
             raise Exception('You have to Specify model') 
         if request.user.is_authenticated:
@@ -70,7 +71,7 @@ class CustomRequiredMixin(View):
             return redirect(reverse_lazy(self.login_url) + f'?next={request.META.get("HTTP_REFERER", None) or "/"}')
 
 
-class Gruoping(ListView):
+class Gruoping(View):
     '''
     you can inherit this class if you want to have grouping
     and filter and search functionality in your view.
@@ -79,34 +80,24 @@ class Gruoping(ListView):
     '''
 
 
-    def get_context_data(self, context=None,**kwargs):
+    def get_context(self, context,**kwargs):
         '''
         add tags and categories and brands to the given context
         '''
-        print(self.request.session)
-        if not context:
-            context = super().get_context_data(**kwargs)
-
+        
         context['categories'] = Category.objects.all()
         context['brands'] = Brand.objects.all()
         context['tags'] = Tag.objects.all()[:30]
         return context
     
-    def get_queryset(self, query_set=None):
+    def get_query_set(self, query_set):
         '''
         filter queryset base on given query.
         filter is base on this keywords --> brand, cat, tag, q
         q will query on name and description fileds.
         return all products if there was'nt any query.
         '''
-        print(self.request.session.get('cart'))
-        print(self.request.user.user_type)
-        print("man injaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaam")
-        self.ordering = self.request.GET.get('sort', None)
-        
-        if not query_set:
-            query_set = super().get_queryset()
-        
+                
         if 'cat' in self.request.GET:
             query_set = query_set.filter(
                 category__pk=self.request.GET.get('cat')
@@ -115,24 +106,33 @@ class Gruoping(ListView):
             query_set = query_set.filter(brand__pk=self.request.GET.get('brand'))
         elif 'tag' in self.request.GET:
             query_set = query_set.filter(tag__pk=self.request.GET.get('tag'))
-        if 'q' in self.request.GET:
-            query_set = query_set.filter(
-                Q(name__icontains=self.request.GET.get('q'))|
-                Q(description__icontains=self.request.GET.get('q'))
-                )
         return query_set
-
         
  
 
-class HomePageView(Gruoping):
+class HomePageView(ListView, Gruoping):
     paginate_by = 9
     login_url = 'user:login'
     model = Product
     template_name = 'product-list.html'
-    # def get(self, request):
-    #     context = self.get_queryset(request)
-    #     return render(request, 'product-list.html', context)
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        return super().get_context(context)
+
+    def get_queryset(self):
+        self.ordering = self.request.GET.get('sort', None)
+        queryset = super().get_queryset()
+        queryset = super().get_query_set(queryset)
+        if 'q' in self.request.GET:
+            queryset = queryset.filter(
+                Q(name__icontains=self.request.GET.get('q'))|
+                Q(description__icontains=self.request.GET.get('q'))
+                )
+        return queryset
+
+    
+
 
 
 class AddToCart(CustomRequiredMixin):
@@ -146,7 +146,6 @@ class AddToCart(CustomRequiredMixin):
         if self.user:
             self.add_to_cart_users(request, pk)
         else:
-            print('i am here', self.user)
             self.add_to_cart_anonymous(request, pk)
 
         return redirect(reverse_lazy('shop:home'))
@@ -166,20 +165,55 @@ class AddToCart(CustomRequiredMixin):
         """
         if user is not authenticated, the product will be add to request's session
         """
-        print('i am anonymouuuuuuus')
         if 'cart' not in request.session:
-            print('not iiiiiiiiiiiiiiiiiiiiiiiiiiin')
             request.session['cart'] = []
-        print(request.POST['quantity'])
         qty = request.POST['quantity']
         request.session['cart'] += [(pk, qty)]
-        # session.save()
 
 
 class ProductDetailView(DetailView):
     model = Product
     template_name = 'product-detail.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        feed = Feedback.objects.filter(
+            customer=self.request.user,
+            product=super().get_object())
+        
+        if feed.exists():
+            form = CreateCommentForm(instance=feed.get())
+        else:
+            form = CreateCommentForm()
+        result = {
+            'form': form
+        }
+        context.update(result)
+        print(context)
+        return context
 
 
+class CreateCommentView(CustomRequiredMixin):
+    model = Customer
+    boolean = True
+
+    def post(self, request):
+        user = super().check_user(request)
+        print(request.POST['product'])
+        product = Product.objects.get(pk=request.POST['product'])
+        feed = Feedback.objects.filter(
+            customer=user,
+            product=product)
+        
+        if feed.exists():
+            form = CreateCommentForm(request.POST, instance=feed.get())
+        else:
+            form = CreateCommentForm(request.POST)
+        if form.is_valid():
+            form.instance.customer = user
+            form.instance.product = product
+            form.save()   
+            return redirect(request.META.get('HTTP_REFERER'))
+        messages.warning(request, "Comment was'nt valid") 
+        return redirect(request.META.get('HTTP_REFERER'))
 
