@@ -81,7 +81,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     # This Fields and Properties are all required
     @property
     def is_staff(self):
-        print(self.is_admin)
         return self.is_admin
 
     def get_full_name(self):
