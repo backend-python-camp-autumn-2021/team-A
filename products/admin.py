@@ -9,7 +9,6 @@ class HandProductModelAdmin(admin.ModelAdmin):
     exclude = ['slug']
 
     def get_exclude(self, request, obj=None):
-        print(request.user.user_type)
 
         """
         Hook for specifying exclude.

@@ -154,11 +154,9 @@ class CartItemView(View):
                 quantity = item[1]
                 item_total_price = product.price * int(quantity)
                 items.append((product, quantity, item_total_price))
-            print(items)
             context = {
                 'items': items
                 }
-        print(context)
         return render(request, 'cart.html', context)
         
 
