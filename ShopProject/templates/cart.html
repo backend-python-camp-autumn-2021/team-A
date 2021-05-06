@@ -31,24 +31,24 @@
                                         </tr>
                                     </thead>
                                     <tbody class="align-middle">
-                                        {% for item in request.cart.cartitems.all %}
+                                        {% for item in items %}
                                         <tr>
                                             <td>
                                                 <div class="img">
-                                                    <a href="#"><img src="{{ item.product.image.url }}" alt="Image"></a>
-                                                    <p>{{item.product.name}}</p>
+                                                    <a href="#"><img src="{{ item.0.image.url }}" alt="Image"></a>
+                                                    <p>{{item.0.name}}</p>
                                                 </div>
                                             </td>
-                                            <td>${{item.product.price}}</td>
+                                            <td>${{item.0.price}}</td>
                                             <td>
                                                 <div class="qty">
-                                                    <a href="{% url 'shop:minus_cart' item.pk %}"><button type="button" class="btn-minus"><i class="fa fa-minus"></i></button></a>
-                                                    <input type="text" value="{{item.quantity}}">
-                                                    <a href="{% url 'shop:plus_cart' item.pk %}"><button type="button" class="btn-plus"><i class="fa fa-plus"></i></button></a>
+                                                    <a href="{% url 'shop:minus_cart' item.0.pk %}"><button type="button" class="btn-minus"><i class="fa fa-minus"></i></button></a>
+                                                    <input type="text" value="{{item.1}}">
+                                                    <a href="{% url 'shop:plus_cart' item.0.pk %}"><button type="button" class="btn-plus"><i class="fa fa-plus"></i></button></a>
                                                 </div>
                                             </td>
-                                            <td>${{item.get_price}}</td>
-                                        <td><a href="{% url 'shop:remove_from_cart' item.pk %}"><button><i class="fa fa-trash"></i></button></a></td>
+                                            <td>${{item.2}}</td>
+                                        <td><a href="{% url 'shop:remove_from_cart' item.0.pk %}"><button><i class="fa fa-trash"></i></button></a></td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>

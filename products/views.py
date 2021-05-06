@@ -115,6 +115,7 @@ class HomePageView(ListView, Gruoping):
     template_name = 'product-list.html'
 
     def get_context_data(self):
+
         context = super().get_context_data()
         return super().get_context(context)
 
@@ -137,7 +138,30 @@ class HomePageView(ListView, Gruoping):
     
 class CartItemView(View):
     def get(self, request):
-        return render(request, 'cart.html')
+        try:
+            if request.user.user_type:
+                items = []
+                for item in request.cart.cartitems.all():
+                    items.append((item.product, item.quantity, item.get_price))
+                context = {
+                    'items': items
+                }
+        except:
+            products = Product.objects.all()
+            items = []
+            for item in request.cart:
+                product = products.get(pk=item[0])
+                quantity = item[1]
+                item_total_price = product.price * int(quantity)
+                items.append((product, quantity, item_total_price))
+            print(items)
+            context = {
+                'items': items
+                }
+        print(context)
+        return render(request, 'cart.html', context)
+        
+
     
 
 
@@ -163,7 +187,13 @@ class AddToCart(CustomRequiredMixin):
         if request user is authenticated, the product will be added
          to the cartitems in his/her account
         '''
-        CartItems.objects.create(
+        cartitem = CartItems.objects.filter(cart=Cart.objects.get_or_create(customer=self.user, state='O')[0],
+            product=Product.objects.get(pk=pk))
+        if cartitem:
+            cartitem[0].quantity += int(request.POST['quantity'])
+            cartitem[0].save()
+        else:
+            CartItems.objects.create(
             cart=Cart.objects.get_or_create(customer=self.user, state='O')[0],
             product=Product.objects.get(pk=pk),
             quantity=request.POST['quantity'],
@@ -176,7 +206,13 @@ class AddToCart(CustomRequiredMixin):
         if 'cart' not in request.session:
             request.session['cart'] = []
         qty = request.POST['quantity']
-        request.session['cart'] += [(pk, qty)]
+        for i in request.session['cart']:
+            if i[0] == pk:
+                index = request.session['cart'].index(i)
+                qty = request.session['cart'][index][1] +int(qty)
+                request.session['cart'].pop(index)
+                break
+        request.session['cart'] += [(pk, int(qty))]
     
 
 class ProductDetailView(DetailView):
@@ -185,18 +221,19 @@ class ProductDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        feed = Feedback.objects.filter(
-            customer=self.request.user,
-            product=super().get_object())
-        
-        if feed.exists():
-            form = CreateCommentForm(instance=feed.get())
-        else:
-            form = CreateCommentForm()
-        result = {
-            'form': form
-        }
-        context.update(result)
+        if self.request.user.is_authenticated:
+            feed = Feedback.objects.filter(
+                customer=self.request.user,
+                product=super().get_object()
+                )
+            if feed.exists():
+                form = CreateCommentForm(instance=feed.get())
+            else:
+                form = CreateCommentForm()
+            result = {
+                'form': form
+            }
+            context.update(result)
         return context
 
 

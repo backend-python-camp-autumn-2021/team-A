@@ -5,9 +5,12 @@ from .models import (Product, Cart, CartItems, Tag,
 
 
 class HandProductModelAdmin(admin.ModelAdmin):
+
     exclude = ['slug']
 
     def get_exclude(self, request, obj=None):
+        print(request.user.user_type)
+
         """
         Hook for specifying exclude.
         """
@@ -18,14 +21,14 @@ class HandProductModelAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         if not form.fields.get('supplier', None):
-            obj.supplier = request.user.hand_product_suplier
+            obj.supplier = request.user
         return super().save_model(request, obj, form, change)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
-        return qs.filter(supplier__user=request.user)
+        return qs.filter(supplier=request.user)
 
     def has_view_permission(self, request, obj=None):
         if request.user.is_superuser:
@@ -55,7 +58,7 @@ class HandProductModelAdmin(admin.ModelAdmin):
             return False
         return True
 
-admin.site.register(Product)
+admin.site.register(Product, HandProductModelAdmin)
 admin.site.register(Attribute)
 admin.site.register(Cart)
 admin.site.register(Factor)
@@ -63,6 +66,7 @@ admin.site.register(Brand)
 admin.site.register(Category)
 admin.site.register(Tag)
 admin.site.register(Feedback)
+admin.site.register(CartItems)
 
 
 # admin.site.register(Product)
