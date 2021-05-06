@@ -7,6 +7,7 @@ class AddUserMiddleWare(MiddlewareMixin):
     def process_request(self, request):
         if not hasattr(request, 'cart'):
             if hasattr(request.user, 'user_type'):
+                print(request.user.user_type)
                 if request.user.user_type:
                     if request.user.user_type.name == 'customer':
                         user = Customer.objects.get(pk=request.user.pk)
@@ -20,4 +21,5 @@ class AddUserMiddleWare(MiddlewareMixin):
                 if 'cart' not in request.session:
                     request.session['cart'] = []
                 request.cart = request.session['cart']              
+                print(request.cart, 'injaaaaaaaaaaaaaaaaaaaaaaaa')
 
