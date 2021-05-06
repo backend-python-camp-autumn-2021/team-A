@@ -24,6 +24,7 @@ import secrets
 
 class AuthenticationView(LoginView):
     template_name = 'login.html'
+    success_url = reverse_lazy('shop:home')
     
 
 def logout_page(request):
