@@ -70,7 +70,7 @@ class CustomRequiredMixin(View):
             return redirect(reverse_lazy(self.login_url) + f'?next={request.META.get("HTTP_REFERER", None) or "/"}')
 
 
-class Gruoping(ListView):
+class ContextMixin(View):
     '''
     you can inherit this class if you want to have grouping
     and filter and search functionality in your view.
@@ -79,19 +79,32 @@ class Gruoping(ListView):
     '''
 
 
-    def get_context_data(self, context=None,**kwargs):
+    def get_context(self, context=None,**kwargs):
         '''
         add tags and categories and brands to the given context
         '''
-        print(self.request.session)
         if not context:
-            context = super().get_context_data(**kwargs)
+            context = self.get_context_data(**kwargs)
 
         context['categories'] = Category.objects.all()
         context['brands'] = Brand.objects.all()
         context['tags'] = Tag.objects.all()[:30]
         return context
     
+    
+        
+ 
+
+class HomePageView(ListView, ContextMixin):
+    paginate_by = 9
+    login_url = 'user:login'
+    model = Product
+    template_name = 'product-list.html'
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        return super().get_context(context)
+
     def get_queryset(self, query_set=None):
         '''
         filter queryset base on given query.
@@ -99,9 +112,7 @@ class Gruoping(ListView):
         q will query on name and description fileds.
         return all products if there was'nt any query.
         '''
-        print(self.request.session.get('cart'))
-        print(self.request.user.user_type)
-        print("man injaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaam")
+        
         self.ordering = self.request.GET.get('sort', None)
         
         if not query_set:
@@ -122,17 +133,6 @@ class Gruoping(ListView):
                 )
         return query_set
 
-        
- 
-
-class HomePageView(Gruoping):
-    paginate_by = 9
-    login_url = 'user:login'
-    model = Product
-    template_name = 'product-list.html'
-    # def get(self, request):
-    #     context = self.get_queryset(request)
-    #     return render(request, 'product-list.html', context)
 
 
 class AddToCart(CustomRequiredMixin):
@@ -176,7 +176,7 @@ class AddToCart(CustomRequiredMixin):
         # session.save()
 
 
-class ProductDetailView(DetailView):
+class ProductDetailView(DetailView, ContextMixin):
     model = Product
     template_name = 'product-detail.html'
 
