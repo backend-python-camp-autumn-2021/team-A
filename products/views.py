@@ -13,8 +13,6 @@ from .forms import CreateCommentForm
 from django.utils.functional import SimpleLazyObject
 
 
-
-
 class CustomRequiredMixin(View):
     register_url = None
     login_url = None
@@ -70,30 +68,15 @@ class CustomRequiredMixin(View):
             return redirect(reverse_lazy(self.login_url) + f'?next={request.META.get("HTTP_REFERER", None) or "/"}')
 
 
-class Gruoping(View):
+class Gruoping:
     '''
-    you can inherit this class if you want to have grouping
-    and filter and search functionality in your view.
-    add this line in your get method.
-    <context_name> = self.get_query_set(request, query_set=None)
-    '''
-
-    def get_context(self, context,**kwargs):
-        '''
-        add tags and categories and brands to the given context
-        '''
-        
-        context['categories'] = Category.objects.all()
-        context['brands'] = Brand.objects.all()
-        context['tags'] = Tag.objects.all()[:30]
-        return context
-    
+    you can inherit this class if you want to have
+    filter and search functionality in your view.
+    '''   
     def get_query_set(self, query_set):
         '''
         filter queryset base on given query.
-        filter is base on this keywords --> brand, cat, tag, q
-        q will query on name and description fileds.
-        return all products if there was'nt any query.
+        filter is base on this keywords --> brand, cat, tag
         '''
                 
         if 'cat' in self.request.GET:
@@ -105,34 +88,28 @@ class Gruoping(View):
         elif 'tag' in self.request.GET:
             query_set = query_set.filter(tag__pk=self.request.GET.get('tag'))
         return query_set
-        
  
 
-class HomePageView(ListView, Gruoping):
+class ProductListView(ListView, Gruoping):
     paginate_by = 9
     login_url = 'user:login'
     model = Product
     template_name = 'product-list.html'
 
-    def get_context_data(self):
-
-        context = super().get_context_data()
-        return super().get_context(context)
-
-    def get_ordering(self):
-        return self.request.GET.get('sort', None)
-
     def get_queryset(self):
+        '''
+        add filter and searches base on q, tag, brand, category.
+        and sorting base on price, name, date fields
+        '''
         self.ordering = self.request.GET.get('sort', None)
         queryset = super().get_queryset()
-        queryset = super().get_query_set(queryset)
+        queryset = super().get_query_set(queryset)  # add gruping query set
+        # search q in name, description fields
         if 'q' in self.request.GET:
             queryset = queryset.filter(
                 Q(name__icontains=self.request.GET.get('q'))|
                 Q(description__icontains=self.request.GET.get('q'))
                 )
-        if self.ordering:
-            queryset.order_by(self.ordering)
         return queryset
 
     
@@ -159,9 +136,6 @@ class CartItemView(View):
                 }
         return render(request, 'cart.html', context)
         
-
-    
-
 
 class AddToCart(CustomRequiredMixin):
 
@@ -274,4 +248,3 @@ def minus_cart(request, pk):
 def remove_from_cart(request, pk):
     cartitem = CartItems.objects.get(pk=pk).delete()
     return redirect(request.META.get('HTTP_REFERER'))
-
