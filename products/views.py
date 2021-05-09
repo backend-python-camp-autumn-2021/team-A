@@ -29,12 +29,12 @@ class CustomRequiredMixin(View):
             try:
                 self.user = self.model.objects.get(pk=request.user.pk)
             except:
-                if redirect_url:
-                    return redirect(redirect_url)
+                if self.redirect_url:
+                    return redirect(self.redirect_url)
                 return self.user_required(request)
         else:
-            if redirect_url:
-                return redirect(redirect_url)
+            if self.redirect_url:
+                return redirect(self.redirect_url)
             return self.login_required(request)
         
         return super().dispatch(request, *args, **kwargs)
@@ -211,13 +211,14 @@ class ProductDetailView(DetailView):
 
 class CreateCommentView(CustomRequiredMixin):
     model = Customer
-    boolean = True
+    
+    redirect_url = reverse_lazy("user:login")
+    register_url = reverse_lazy("user:register_customer")
 
     def post(self, request):
-        user = super().check_user(request)
         product = Product.objects.get(pk=request.POST['product'])
         feed = Feedback.objects.filter(
-            customer=user,
+            customer=request.user,
             product=product)
         
         if feed.exists():
@@ -225,7 +226,7 @@ class CreateCommentView(CustomRequiredMixin):
         else:
             form = CreateCommentForm(request.POST)
         if form.is_valid():
-            form.instance.customer = user
+            form.instance.customer = request.user
             form.instance.product = product
             form.save()   
             return redirect(request.META.get('HTTP_REFERER'))

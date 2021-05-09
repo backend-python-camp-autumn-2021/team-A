@@ -36,7 +36,7 @@ class Attribute(models.Model):
     value = models.CharField(max_length=150)
 
     def __str__(self):
-        return self.name
+        return f'{self.name} = {self.value}'
 
 
 class Product(models.Model):
@@ -51,6 +51,9 @@ class Product(models.Model):
     quantity = models.IntegerField(default=1)
     published_date = models.DateTimeField(auto_now_add=True)
     description = models.TextField(default="Good")
+    
+    def comment_count(self):
+        return self.feedbacks.count()
 
     def __str(self):
         return self.name
