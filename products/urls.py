@@ -11,10 +11,5 @@ urlpatterns = [
     path('plus-cart/<int:pk>/', views.plus_cart, name='plus_cart'),
     path('minus-cart/<int:pk>/', views.minus_cart, name='minus_cart'),
     path('remove-from-cart/<int:pk>/', views.remove_from_cart, name='remove_from_cart'),
-
-
-
-
-
-
-]
+    path('send-sms/', views.send_sms, name='send_sms'),
+    ]
