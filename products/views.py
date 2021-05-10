@@ -115,25 +115,32 @@ class ProductListView(ListView, Gruoping):
     
 class CartItemView(View):
     def get(self, request):
-        try:
-            if request.user.user_type:
-                items = []
-                for item in request.cart.cartitems.all():
-                    items.append((item.product, item.quantity, item.get_price))
-                context = {
-                    'items': items
-                }
-        except:
+        if not request.user.is_authenticated:
             products = Product.objects.all()
             items = []
+            price = 0
             for item in request.cart:
                 product = products.get(pk=item[0])
                 quantity = item[1]
                 item_total_price = product.price * int(quantity)
+                price += item_total_price
                 items.append((product, quantity, item_total_price))
             context = {
-                'items': items
+                'items': items,
+                'sub_total':price
                 }
+        elif request.user.user_type.name == 'customer':
+            items = []
+            for item in request.cart.cartitems.all():
+                items.append((item.product, item.quantity, item.get_price))
+            context = {
+                'items': items,
+                'sub_total': request.cart.get_total_price
+            }
+        else:
+            messages.warning(request,
+                'Suppliers and admins do not have cart!!!')
+            context = {}
         return render(request, 'cart.html', context)
         
 
@@ -146,11 +153,18 @@ class AddToCart(CustomRequiredMixin):
     def post(self,request, pk):
 
         '''authenticating user'''
-        self.user = self.check_user(request)
-        if self.user:
+        print(int(request.POST['quantity']))
+        if int(request.POST['quantity']) <= 0:
+            messages.warning(request, 'You must select at least one product')
+            return redirect(reverse_lazy('shop:home'))
+
+        if not request.user.is_authenticated:
+            self.add_to_cart_anonymous(request, pk)
+        elif request.user.user_type.name == 'customer':
             self.add_to_cart_users(request, pk)
         else:
-            self.add_to_cart_anonymous(request, pk)
+            messages.warning(request,
+                'Suppliers and admins can not buy any shit!!!')
 
         return redirect(reverse_lazy('shop:home'))
 
@@ -159,14 +173,16 @@ class AddToCart(CustomRequiredMixin):
         if request user is authenticated, the product will be added
          to the cartitems in his/her account
         '''
-        cartitem = CartItems.objects.filter(cart=Cart.objects.get_or_create(customer=self.user, state='O')[0],
-            product=Product.objects.get(pk=pk))
+        cartitem = CartItems.objects.filter(
+            cart=Cart.objects.get_or_create(customer=request.user, state='O')[0],
+            product=Product.objects.get(pk=pk)
+            )
         if cartitem:
             cartitem[0].quantity += int(request.POST['quantity'])
             cartitem[0].save()
         else:
             CartItems.objects.create(
-            cart=Cart.objects.get_or_create(customer=self.user, state='O')[0],
+            cart=Cart.objects.get_or_create(customer=request.user, state='O')[0],
             product=Product.objects.get(pk=pk),
             quantity=request.POST['quantity'],
             )
@@ -181,7 +197,7 @@ class AddToCart(CustomRequiredMixin):
         for i in request.session['cart']:
             if i[0] == pk:
                 index = request.session['cart'].index(i)
-                qty = request.session['cart'][index][1] +int(qty)
+                request.session['cart'][index][1] +int(qty)
                 request.session['cart'].pop(index)
                 break
         request.session['cart'] += [(pk, int(qty))]
@@ -193,19 +209,22 @@ class ProductDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if self.request.user.is_authenticated:
-            feed = Feedback.objects.filter(
-                customer=self.request.user,
-                product=super().get_object()
-                )
-            if feed.exists():
-                form = CreateCommentForm(instance=feed.get())
-            else:
-                form = CreateCommentForm()
-            result = {
-                'form': form
-            }
-            context.update(result)
+        try:
+            if self.request.user.user_type.name == 'customer':
+                feed = Feedback.objects.filter(
+                    customer=self.request.user,
+                    product=super().get_object()
+                    )
+                if feed.exists():
+                    form = CreateCommentForm(instance=feed.get())
+                else:
+                    form = CreateCommentForm()
+                result = {
+                    'form': form
+                }
+                context.update(result)
+        except:
+            pass
         return context
 
 
@@ -233,18 +252,55 @@ class CreateCommentView(CustomRequiredMixin):
         return redirect(request.META.get('HTTP_REFERER'))
 
 def plus_cart(request, pk):
-    cartitem = CartItems.objects.get(pk=pk)
-    cartitem.quantity += 1
-    cartitem.save()
-    return redirect(request.META.get('HTTP_REFERER'))
-
+    if request.user.is_authenticated:
+        cartitem = CartItems.objects.get(product__pk=pk)
+        cartitem.quantity += 1
+        cartitem.save()
+    else:
+        for i in request.session['cart']:
+            if i[0] == pk:
+                i[1] += 1
+                request.session.save()
+                break
+    if request.META.get('HTTP_REFERER'):
+        return redirect(request.META.get('HTTP_REFERER'))
+    else:
+        return redirect(reverse_lazy('shop:cart'))
 
 def minus_cart(request, pk):
-    cartitem = CartItems.objects.get(pk=pk)
-    cartitem.quantity -= 1
-    cartitem.save()
-    return redirect(request.META.get('HTTP_REFERER'))
+    if request.user.is_authenticated:
+        cartitem = CartItems.objects.get(product__pk=pk)
+        cartitem.quantity -= 1
+        if cartitem.quantity <= 0:
+            messages.warning(request, 'you can not go under zero')
+        else:
+            cartitem.save()
+    else:
+        for i in request.session['cart']:
+            if i[0] == pk:
+                i[1] -= 1
+                if i[1] <= 0:
+                    messages.warning(request, 'you can not go under zero')
+                    break
+                request.session.save()
+                break
+    if request.META.get('HTTP_REFERER'):
+        return redirect(request.META.get('HTTP_REFERER'))
+    else:
+        return redirect(reverse_lazy('shop:cart'))
 
 def remove_from_cart(request, pk):
-    cartitem = CartItems.objects.get(pk=pk).delete()
-    return redirect(request.META.get('HTTP_REFERER'))
+    if request.user.is_authenticated:
+        cartitem = CartItems.objects.get(product__pk=pk)
+        if request.user == cartitem.cart.customer:
+            cartitem.delete()
+    else:
+        for i in request.session['cart']:
+            if i[0] == pk:
+                request.session['cart'].remove(i)
+                request.session.save()
+                break
+    if request.META.get('HTTP_REFERER'):
+        return redirect(request.META.get('HTTP_REFERER'))
+    else:
+        return redirect(reverse_lazy('shop:cart'))

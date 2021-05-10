@@ -1,5 +1,12 @@
 {% load static %}
 <!-- Nav Bar Start -->
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{message.tags}}" role="alert">
+      {{message}}
+    </div>
+    {% endfor %}
+{% endif %}
 <div class="nav">
     <div class="container-fluid">
         <nav class="navbar navbar-expand-md bg-dark navbar-dark">
@@ -7,13 +14,7 @@
             <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbarCollapse">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
+            
             <div class="collapse navbar-collapse justify-content-between" id="navbarCollapse">
                 <div class="navbar-nav mr-auto">
                     <!-- <a href="index.html" class="nav-item nav-link">Home</a> -->
