@@ -3,7 +3,6 @@ from users.models import Customer, Supplier
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 
-
 class Brand(models.Model):
     brand_name = models.CharField(max_length=255)
 
@@ -17,12 +16,11 @@ class Brand(models.Model):
 
 
 class Category(models.Model):
-    cat_name = models.CharField(max_length=255)
+    cat_name = models.CharField(max_length=255, unique=True)
     subcategory = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='parent_cat')
 
     def __str__(self):
         return self.cat_name
-
 
 class Tag(models.Model):
     tag = models.CharField(max_length=150)
@@ -36,7 +34,7 @@ class Attribute(models.Model):
     value = models.CharField(max_length=150)
 
     def __str__(self):
-        return f'{self.name} = {self.value}'
+        return self.name
 
 
 class Product(models.Model):
@@ -51,9 +49,6 @@ class Product(models.Model):
     quantity = models.IntegerField(default=1)
     published_date = models.DateTimeField(auto_now_add=True)
     description = models.TextField(default="Good")
-    
-    def comment_count(self):
-        return self.feedbacks.count()
 
     def __str(self):
         return self.name

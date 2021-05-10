@@ -33,8 +33,8 @@ def logout_page(request):
 
 
 class RegisterSupplierView(CreateView):
-    template_name = 'signup.html'
     form_class = RegisterSupplierForm
+    template_name = 'signup.html'
     success_url = reverse_lazy('user:login')
 
 
