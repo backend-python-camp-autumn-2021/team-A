@@ -40,12 +40,12 @@ class MyUserManager(BaseUserManager):
         return user
         
 
-
 class UserTypes(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     username_validator = UnicodeUsernameValidator()
@@ -77,7 +77,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     EMAIL_FIELD = 'email'
     REQUIRED_FIELDS = ['email']
 
-
     # This Fields and Properties are all required
     @property
     def is_staff(self):
@@ -96,15 +95,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
-
-    def has_perm(self, perm, obj=None):
-        "Does the user have a specific permission?"
-        return True
-
-    def has_module_perms(self, app_label):
-        "Does the user have permissions to view the app `app_label`?"
-        return True
-
 
 
 class Supplier(User):
