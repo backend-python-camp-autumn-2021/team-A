@@ -1,16 +1,25 @@
+import os
+from pathlib import Path
+
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from users.models import User, Supplier, Customer
-from .models import Category, Tag, Brand, Product, CartItems, Cart, Feedback
 from django.db.models import Q
 from django.contrib import messages
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic import ListView, DetailView, CreateView, FormView
-from .forms import CreateCommentForm
 from django.utils.functional import SimpleLazyObject
+
+from dotenv import load_dotenv, find_dotenv
+
+from .forms import CreateCommentForm
+from .models import Category, Tag, Brand, Product, CartItems, Cart, Feedback
+
+env_file = Path(find_dotenv(usecwd=True))
+load_dotenv(verbose=True, dotenv_path=env_file)
 
 
 class Gruoping:
@@ -265,3 +274,9 @@ def remove_from_cart(request, pk):
         return redirect(request.META.get('HTTP_REFERER'))
     else:
         return redirect(reverse_lazy('shop:cart'))
+
+def send_sms(request):
+    api = kavenegar.KavenegarAPI(os.environ.get('KAVENEGAR_APIKEY'))
+    params = { 'sender' : '1000596446', 'receptor': '09214661058', 'message' :'.وب سرویس پیام کوتاه کاوه نگار' }
+    response = api.sms_send(params)
+    return redirect(reverse_lazy('shop:home'))
