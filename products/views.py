@@ -13,61 +13,6 @@ from .forms import CreateCommentForm
 from django.utils.functional import SimpleLazyObject
 
 
-class CustomRequiredMixin(View):
-    register_url = None
-    login_url = None
-    redirect_url = None
-    model = None
-    boolean = False
-
-    def dispatch(self, request, *args, **kwargs):
-        if self.boolean:
-            return super().dispatch(request, *args, **kwargs)
-        if not self.model:
-            raise Exception('You have to Specify model') 
-        if request.user.is_authenticated:
-            try:
-                self.user = self.model.objects.get(pk=request.user.pk)
-            except:
-                if redirect_url:
-                    return redirect(redirect_url)
-                return self.user_required(request)
-        else:
-            if redirect_url:
-                return redirect(redirect_url)
-            return self.login_required(request)
-        
-        return super().dispatch(request, *args, **kwargs)
-    
-    def check_user(self, request):
-        if not self.model:
-            raise Exception('You have to Specify model') 
-        if request.user.is_authenticated:
-            try:
-                self.user = self.model.objects.get(pk=request.user.pk)
-                return self.user
-            except:
-                return False
-        else:
-            return False
-
-    def user_required(self, request):
-        messages.error(request, f'You have to be {str(self.model)} to access this page.')
-        if not self.register_url:
-            return HttpResponse('You have to login as supplier')
-        return redirect(reverse_lazy(self.register_url))
-
-    def login_required(self, request):
-        messages.error(request, 'You have to login to system to access this page.')
-        if not self.login_url:
-            if not settings.LOGIN_URL:
-                return HttpResponse('You have to login to system')
-            else:
-                return redirect(reverse_lazy(settings.LOGIN_URLlogin_url, kwargs={'next': request.META.get('HTTP_REFERER', None) or '/'}))
-        else:
-            return redirect(reverse_lazy(self.login_url) + f'?next={request.META.get("HTTP_REFERER", None) or "/"}')
-
-
 class Gruoping:
     '''
     you can inherit this class if you want to have
@@ -92,7 +37,6 @@ class Gruoping:
 
 class ProductListView(ListView, Gruoping):
     paginate_by = 9
-    login_url = 'user:login'
     model = Product
     template_name = 'product-list.html'
 
@@ -118,16 +62,17 @@ class CartItemView(View):
         if not request.user.is_authenticated:
             products = Product.objects.all()
             items = []
-            price = 0
-            for item in request.cart:
+            sub_price = 0
+            for item in request.cart: # [[pk, qty], ...]
+                # item --> [pk, qty]
                 product = products.get(pk=item[0])
                 quantity = item[1]
                 item_total_price = product.price * int(quantity)
-                price += item_total_price
+                sub_price += item_total_price
                 items.append((product, quantity, item_total_price))
             context = {
                 'items': items,
-                'sub_total':price
+                'sub_total':sub_price
                 }
         elif request.user.user_type.name == 'customer':
             items = []
@@ -144,25 +89,28 @@ class CartItemView(View):
         return render(request, 'cart.html', context)
         
 
-class AddToCart(CustomRequiredMixin):
-
+class AddToCart(View):
     '''add product to cart items for requested user '''
-    model = Customer
-    boolean = True
-
     def post(self,request, pk):
-
-        '''authenticating user'''
-        print(int(request.POST['quantity']))
+        '''
+        there is three condition:
+        1. anonymouse users can add to cart
+        2. customers can add to cart
+        3. quantity must be higher than 0
+        '''
+        # check for quantity
         if int(request.POST['quantity']) <= 0:
             messages.warning(request, 'You must select at least one product')
             return redirect(reverse_lazy('shop:home'))
 
         if not request.user.is_authenticated:
+            # check if user is anonymous
             self.add_to_cart_anonymous(request, pk)
         elif request.user.user_type.name == 'customer':
+            # check if user is customer 
             self.add_to_cart_users(request, pk)
         else:
+            # if user is not one of them
             messages.warning(request,
                 'Suppliers and admins can not buy any shit!!!')
 
@@ -178,9 +126,13 @@ class AddToCart(CustomRequiredMixin):
             product=Product.objects.get(pk=pk)
             )
         if cartitem:
+            # if there is an cartitem for this product
+            # only quantity will be upgrade
             cartitem[0].quantity += int(request.POST['quantity'])
             cartitem[0].save()
         else:
+            # if there is no cartitem for this product
+            # create a new one
             CartItems.objects.create(
             cart=Cart.objects.get_or_create(customer=request.user, state='O')[0],
             product=Product.objects.get(pk=pk),
@@ -194,12 +146,15 @@ class AddToCart(CustomRequiredMixin):
         if 'cart' not in request.session:
             request.session['cart'] = []
         qty = request.POST['quantity']
-        for i in request.session['cart']:
-            if i[0] == pk:
-                index = request.session['cart'].index(i)
-                request.session['cart'][index][1] +int(qty)
-                request.session['cart'].pop(index)
-                break
+        for i in request.session['cart']: # [[pk, qty], ..]
+            # if there is a item with that product
+            # only upgrade the quantity
+            if i[0] == pk: # i --> [pk, qty]
+                i[1] += int(qty)
+                request.session.save()
+                return True
+        # if there wasn't any item for that product
+        # create a new one
         request.session['cart'] += [(pk, int(qty))]
     
 
@@ -208,13 +163,19 @@ class ProductDetailView(DetailView):
     template_name = 'product-detail.html'
 
     def get_context_data(self, **kwargs):
+        '''
+        add comment form to context
+        if user is customer.
+        '''
         context = super().get_context_data(**kwargs)
-        try:
+        try: # If the user is anonymous, an error occurs in line 216
             if self.request.user.user_type.name == 'customer':
                 feed = Feedback.objects.filter(
                     customer=self.request.user,
-                    product=super().get_object()
-                    )
+                    product=super().get_object())
+                # check if user has a cooment already or not.
+                # if yes return the update comment form
+                # if no return a new comment form
                 if feed.exists():
                     form = CreateCommentForm(instance=feed.get())
                 else:
@@ -228,23 +189,23 @@ class ProductDetailView(DetailView):
         return context
 
 
-class CreateCommentView(CustomRequiredMixin):
-    model = Customer
-    boolean = True
+class CreateCommentView(View):
 
     def post(self, request):
-        user = super().check_user(request)
         product = Product.objects.get(pk=request.POST['product'])
         feed = Feedback.objects.filter(
-            customer=user,
+            customer=request.user,
             product=product)
-        
-        if feed.exists():
+        # check if user has a cooment already or not.
+        # if yes update the comment
+        # if no create a new comment
+        if feed.exists(): 
             form = CreateCommentForm(request.POST, instance=feed.get())
         else:
             form = CreateCommentForm(request.POST)
+        
         if form.is_valid():
-            form.instance.customer = user
+            form.instance.customer = request.user
             form.instance.product = product
             form.save()   
             return redirect(request.META.get('HTTP_REFERER'))
@@ -257,8 +218,8 @@ def plus_cart(request, pk):
         cartitem.quantity += 1
         cartitem.save()
     else:
-        for i in request.session['cart']:
-            if i[0] == pk:
+        for i in request.session['cart']: # [[pk, qty], ...]
+            if i[0] == pk: # i --> [pk, qty]
                 i[1] += 1
                 request.session.save()
                 break
@@ -276,8 +237,8 @@ def minus_cart(request, pk):
         else:
             cartitem.save()
     else:
-        for i in request.session['cart']:
-            if i[0] == pk:
+        for i in request.session['cart']: # [[pk, qty], ...]
+            if i[0] == pk: # i --> [pk, qty]
                 i[1] -= 1
                 if i[1] <= 0:
                     messages.warning(request, 'you can not go under zero')
@@ -292,11 +253,11 @@ def minus_cart(request, pk):
 def remove_from_cart(request, pk):
     if request.user.is_authenticated:
         cartitem = CartItems.objects.get(product__pk=pk)
-        if request.user == cartitem.cart.customer:
+        if request.user == cartitem.cart.customer: # chech for more security
             cartitem.delete()
-    else:
-        for i in request.session['cart']:
-            if i[0] == pk:
+    else:  # for anonymous users
+        for i in request.session['cart']: # [[pk, qty], ...]
+            if i[0] == pk: # i --> [pk, qty]
                 request.session['cart'].remove(i)
                 request.session.save()
                 break
