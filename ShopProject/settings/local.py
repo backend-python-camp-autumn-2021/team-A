@@ -21,12 +21,12 @@ INTERNAL_IPS = [
     '127.0.0.1',
 ]
 
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = 'media'
 MEDIA_URL = '/media/'
 
-STATIC_ROOT = BASE_DIR / 'static_env'
+STATIC_ROOT = 'static_env'
 
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = ['static']
 STATIC_URL = '/static/'
 
 EMAIL_BACKEND ='django.core.mail.backends.smtp.EmailBackend'

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import json
 
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
@@ -14,6 +15,7 @@ from django.views.generic import ListView, DetailView, CreateView, FormView
 from django.utils.functional import SimpleLazyObject
 
 from dotenv import load_dotenv, find_dotenv
+import requests
 
 from .forms import CreateCommentForm
 from .models import Category, Tag, Brand, Product, CartItems, Cart, Feedback
@@ -280,3 +282,51 @@ def send_sms(request):
     params = { 'sender' : '1000596446', 'receptor': '09214661058', 'message' :'.وب سرویس پیام کوتاه کاوه نگار' }
     response = api.sms_send(params)
     return redirect(reverse_lazy('shop:home'))
+
+
+class CheckOutView(View):
+    def get(self, request):
+        return render(request, 'checkout.html')
+
+    def post(self, request):
+        payload = {
+            'order_id': request.cart.id,
+            'amount': request.cart.get_total_price
+            'name': f'{request.POST.get("name")} {request.POST.get("lastname")}',
+            'phone': request.POST.get('phone') or request.user.phone or None,
+            'mail': request.POST.get('mail') or request.user.email or None,
+            'desc': request.POST.get('description'),
+            'callback': reverse_lazy('shop:payment_result_page')
+        }
+        headers = {
+            'X-SANDBOX': '1',
+            'X-API-KEY': '07b2d66e-3235-4551-ba68-7e4fafacfcab',
+            'Content-Type': 'application/json'
+        }
+        url = 'https://api.idpay.ir/v1.1/payment'
+        json.dumps(payload)
+        print(requests.post(url=url, data=json.dumps(payload), headers=headers))
+
+        return HttpResponseRedirect(reverse_lazy('shop:home'))
+
+class CheckOutCallBackView(View):
+    def post(self, request):
+        print(request.POST)
+
+def send_checkout(request):
+    payload = {
+        'order_id': request.cart.id,
+        'amount': request.cart.get_total_price
+        'name': f'{request.POST.get("name")} {request.POST.get("lastname")}',
+        'phone': request.POST.get('phone') or request.user.phone or None,
+        'mail': request.POST.get('mail') or request.user.email or None,
+        'desc': request.POST.get('description'),
+        'callback': reverse_lazy('shop:payment_result_page')
+    }
+    headers = {
+        'X-SANDBOX': '1',
+        'X-API-KEY': '07b2d66e-3235-4551-ba68-7e4fafacfcab',
+        'Content-Type': 'application/json'
+    }
+    url = 'https://api.idpay.ir/v1.1/payment'
+    requests.post(url=url, data=payload, headers=headers)
