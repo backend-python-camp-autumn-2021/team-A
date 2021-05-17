@@ -290,13 +290,13 @@ class CheckOutView(View):
 
     def post(self, request):
         payload = {
-            'order_id': request.cart.id,
-            'amount': request.cart.get_total_price
+            'order_id': 1010,
+            'amount': 10000,
             'name': f'{request.POST.get("name")} {request.POST.get("lastname")}',
-            'phone': request.POST.get('phone') or request.user.phone or None,
-            'mail': request.POST.get('mail') or request.user.email or None,
+            'phone': '02193123',
+            'mail': "email@mmm.com",
             'desc': request.POST.get('description'),
-            'callback': reverse_lazy('shop:payment_result_page')
+            'callback': str(reverse_lazy('shop:checkout_callback')),
         }
         headers = {
             'X-SANDBOX': '1',
@@ -304,29 +304,13 @@ class CheckOutView(View):
             'Content-Type': 'application/json'
         }
         url = 'https://api.idpay.ir/v1.1/payment'
-        json.dumps(payload)
+        print(type(payload))
+        # json.dumps(payload)
         print(requests.post(url=url, data=json.dumps(payload), headers=headers))
+        print(type(requests.post(url=url, data=json.dumps(payload), headers=headers)))
 
-        return HttpResponseRedirect(reverse_lazy('shop:home'))
+        return requests.post(url=url, data=json.dumps(payload), headers=headers)
 
 class CheckOutCallBackView(View):
     def post(self, request):
         print(request.POST)
-
-def send_checkout(request):
-    payload = {
-        'order_id': request.cart.id,
-        'amount': request.cart.get_total_price
-        'name': f'{request.POST.get("name")} {request.POST.get("lastname")}',
-        'phone': request.POST.get('phone') or request.user.phone or None,
-        'mail': request.POST.get('mail') or request.user.email or None,
-        'desc': request.POST.get('description'),
-        'callback': reverse_lazy('shop:payment_result_page')
-    }
-    headers = {
-        'X-SANDBOX': '1',
-        'X-API-KEY': '07b2d66e-3235-4551-ba68-7e4fafacfcab',
-        'Content-Type': 'application/json'
-    }
-    url = 'https://api.idpay.ir/v1.1/payment'
-    requests.post(url=url, data=payload, headers=headers)
