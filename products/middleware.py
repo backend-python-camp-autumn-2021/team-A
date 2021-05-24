@@ -29,6 +29,6 @@ class AddUserMiddleWare(MiddlewareMixin):
         else:
             if 'cart' not in request.session:
                 request.session['cart'] = []
-            request.cart = request.session['cart']   
+            request.cart = request.session['cart']
                
 
