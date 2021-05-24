@@ -83,7 +83,7 @@ class CartItemView(View):
                 'items': items,
                 'sub_total':sub_price
                 }
-        elif request.user.user_type.name == 'customer':
+        elif request.user.is_customer:
             items = []
             for item in request.cart.cartitems.all():
                 items.append((item.product, item.quantity, item.get_price))
@@ -115,7 +115,7 @@ class AddToCart(View):
         if not request.user.is_authenticated:
             # check if user is anonymous
             self.add_to_cart_anonymous(request, pk)
-        elif request.user.user_type.name == 'customer':
+        elif request.user.is_customer:
             # check if user is customer 
             self.add_to_cart_users(request, pk)
         else:
@@ -178,7 +178,7 @@ class ProductDetailView(DetailView):
         '''
         context = super().get_context_data(**kwargs)
         try: # If the user is anonymous, an error occurs in line 216
-            if self.request.user.user_type.name == 'customer':
+            if self.request.user.is_customer:
                 feed = Feedback.objects.filter(
                     customer=self.request.user,
                     product=super().get_object())

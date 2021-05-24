@@ -1,7 +1,6 @@
 from django.contrib import admin
-from .models import Supplier, Address, Customer, UserTypes
+from .models import Supplier, Address, Customer, User
 from .forms import RegisterCustomerForm, RegisterSupplierForm
-from users.models import UserTypes
 
 
 class CustomerAdmin(admin.ModelAdmin):
@@ -15,5 +14,6 @@ class SupplierAdmin(admin.ModelAdmin):
 admin.site.register(Supplier, SupplierAdmin)
 admin.site.register(Customer, CustomerAdmin)
 admin.site.register(Address)
-admin.site.register(UserTypes)
+admin.site.register(User)
+
 

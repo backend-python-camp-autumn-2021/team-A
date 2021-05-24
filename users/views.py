@@ -22,9 +22,9 @@ from dotenv import load_dotenv, find_dotenv
 from .forms import (RegisterSupplierForm, RegisterCustomerForm, PasswordResetForm,
     CustomerProfileForm, SupplierProfileForm,
     SupplierProfileForm, CustomerProfileForm,
-    SetPasswordForm)
+    SetPasswordForm, CustomAuthenticationForm)
 from .models import User
-from .models import Customer, Supplier, UserTypes
+from .models import Customer, Supplier
 
 env_file = Path(find_dotenv(usecwd=True))
 load_dotenv(verbose=True, dotenv_path=env_file)
@@ -32,6 +32,7 @@ load_dotenv(verbose=True, dotenv_path=env_file)
 
 class AuthenticationView(LoginView):
     template_name = 'authentication/login.html'
+    form_class = CustomAuthenticationForm
     
     def get_success_url(self):
         return reverse_lazy('shop:home')

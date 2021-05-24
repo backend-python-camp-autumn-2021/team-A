@@ -40,12 +40,6 @@ class MyUserManager(BaseUserManager):
         return user
         
 
-class UserTypes(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        return self.name
-
 
 class User(AbstractBaseUser, PermissionsMixin):
     username_validator = UnicodeUsernameValidator()
@@ -68,8 +62,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
-    profile_picture = models.ImageField(upload_to='profiles', null=True, blank=True)
-    user_type = models.ForeignKey(UserTypes, on_delete=models.CASCADE, null=True)
+    profile_picture = models.ImageField(upload_to='profiles', default='default_pic.png')
 
     objects = MyUserManager()
 
@@ -81,6 +74,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_staff(self):
         return self.is_admin
+
+    @property
+    def is_supplier(self):
+        return False
+
+    @property
+    def is_customer(self):
+        return False
 
     def get_full_name(self):
         """
@@ -105,6 +106,10 @@ class Supplier(User):
 
     def __str__(self):
         return f'Supplier {self.username}'
+    
+    @property
+    def is_supplier(self):
+        return True
 
 
 class Customer(User):
@@ -118,6 +123,10 @@ class Customer(User):
     
     def __str__(self):
         return f'Customer {self.username}'
+    
+    @property
+    def is_customer(self):
+        return True
 
 
 class Address(models.Model):

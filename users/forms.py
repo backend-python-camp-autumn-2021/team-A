@@ -1,8 +1,40 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import Supplier, Customer, UserTypes
+from django.core.exceptions import ValidationError
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
 from django.contrib.auth.models import Group
-group = Group.objects.get(name='Supplier-Permissions')
+from django.contrib import messages
+
+from .models import Supplier, Customer,User
+
+
+class CustomAuthenticationForm(AuthenticationForm):
+    LOGIN_CHOICES = (
+        ('C', 'Customer'),
+        ('S', 'Supplier'),
+        ('A', 'Admin'),
+    )
+    login_choices = forms.ChoiceField(choices=LOGIN_CHOICES)
+    
+    def clean(self):
+        super().clean()
+        choice = self.cleaned_data.get('login_choices')
+        if choice == 'C':
+            try:
+                Customer.objects.get(username=self.cleaned_data.get('username'))
+                self.request.session['type'] = 'customer'
+            except Exception as e:
+                raise ValidationError(e)
+        if choice == 'S':
+            try:
+                Supplier.objects.get(username=self.cleaned_data.get('username'))
+                self.request.session['type'] = 'supplier'
+            except Exception as e:
+                raise ValidationError(e)
+        if choice == 'A':
+            self.request.session['type'] = 'admin'
+        return self.cleaned_data
 
 
 class RegisterSupplierForm(UserCreationForm):
@@ -12,16 +44,18 @@ class RegisterSupplierForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = Supplier
         # You should Override fields base on your Customize model
-        fields = ['username', 'password1', 'password2', 'first_name', 'last_name', 'email', 'company_name', 'bank_account']
+        fields = [
+            'username', 'password1', 'password2', 'first_name',
+            'last_name', 'email', 'company_name', 'bank_account',
+            'profile_picture']
 
     def save(self, *args, **kargs):
         '''
         assign user_type to supplier type before saving
         '''
-        supplier_type = UserTypes.objects.get_or_create(name='supplier')[0]
-        self.instance.user_type = supplier_type
-        self.instance.is_admin = True
         supplier =  super().save(*args, **kargs)
+        supplier.is_admin = True
+        group = Group.objects.get(name='Supplier-Permissions')
         supplier.groups.add(group)
         supplier.save()
         return supplier
@@ -34,15 +68,9 @@ class RegisterCustomerForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = Customer
         # You should Override fields base on your Customize model
-        fields = ['username', 'password1', 'password2', 'first_name', 'last_name', 'email', 'phone', 'gender']
-
-    def save(self, *args, **kargs):
-        '''
-        assign user_type to customer type before saving
-        '''
-        customer_type = UserTypes.objects.get_or_create(name='customer')[0]
-        self.instance.user_type = customer_type
-        return super().save(*args, **kargs)
+        fields = [
+            'username', 'password1', 'password2', 'first_name',
+            'last_name', 'email', 'phone', 'gender', 'profile_picture']
 
 
 class SupplierProfileForm(forms.ModelForm):

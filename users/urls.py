@@ -1,7 +1,6 @@
 from django.urls import path, reverse_lazy
 from . import views
 
-
 app_name = 'user'
 urlpatterns =[
     path('login/', views.AuthenticationView.as_view(), name='login'),
