@@ -92,8 +92,8 @@ class PasswordResetView(View):
         
         send_mail(
             'Reset Password',
+            link,
             settings.EMAIL_HOST_USER,
-            link
             [email],
             fail_silently=False,
         )
@@ -104,7 +104,7 @@ class PasswordResetView(View):
 class PasswordResetVerifyView(View):
     def get(self, request, token):
         r = redis.Redis(host='localhost', port=6379, db=0)
-        mail = r.get(token)
+        mail = r.get(token).decode('utf-8')
         form = SetPasswordForm()
 
         context = {

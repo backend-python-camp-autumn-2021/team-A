@@ -4,6 +4,10 @@ from django.contrib.auth.models import (
     AbstractBaseUser, BaseUserManager, PermissionsMixin, AbstractUser
     )
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.dispatch import receiver
+from django.db.models.signals import post_save
+from rest_framework.authtoken.models import Token
+
 
 
 class MyUserManager(BaseUserManager):
@@ -96,6 +100,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+@receiver(signal=post_save, sender=User)
+def add_token(sender, instance=None, created=False, **kwargs):
+    if created:
+        Token.objects.create(user=instance)
 
 
 class Supplier(User):
