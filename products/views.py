@@ -306,10 +306,11 @@ class CheckOutView(View):
         url = 'https://api.idpay.ir/v1.1/payment'
         print(type(payload))
         # json.dumps(payload)
-        print(requests.post(url=url, data=json.dumps(payload), headers=headers))
-        print(type(requests.post(url=url, data=json.dumps(payload), headers=headers)))
-
-        return requests.post(url=url, data=json.dumps(payload), headers=headers)
+        r = json.loads(requests.post(url=url, data=json.dumps(payload), headers=headers).text)
+        # print(type(requests.post(url=url, data=json.dumps(payload), headers=headers)))
+        print(r)
+        print("yeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+        return HttpResponseRedirect(r.get('link'))
 
 class CheckOutCallBackView(View):
     def post(self, request):
