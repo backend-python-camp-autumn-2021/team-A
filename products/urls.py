@@ -1,5 +1,10 @@
 from django.urls import path
 from . import views
+from .api import views as apiviews
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'products', apiviews.ProductViewSet)
 
 app_name = 'shop'
 urlpatterns = [
@@ -12,4 +17,6 @@ urlpatterns = [
     path('minus-cart/<int:pk>/', views.minus_cart, name='minus_cart'),
     path('remove-from-cart/<int:pk>/', views.remove_from_cart, name='remove_from_cart'),
     path('send-sms/', views.send_sms, name='send_sms'),
-    ]
+    #api
+
+    ] + router.urls
