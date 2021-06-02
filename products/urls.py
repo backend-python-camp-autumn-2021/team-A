@@ -5,6 +5,10 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'products', apiviews.ProductViewSet)
+router.register(r'attributes', apiviews.AttributeViewSet)
+router.register(r'tags', apiviews.TagViewSet)
+router.register(r'brands', apiviews.BrandViewSet)
+router.register(r'categories', apiviews.CategoryViewSet)
 
 app_name = 'shop'
 urlpatterns = [

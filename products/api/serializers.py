@@ -28,28 +28,33 @@ class BrandSerializer(serializers.ModelSerializer):
 
 
 class ProductCreateSerializer(serializers.ModelSerializer):
-    category = CategorySerializer()
-    brand = BrandSerializer()
-    tag = TagSerializer()
-    attribute = AttributeSerializer()
+    category = serializers.StringRelatedField()
+    brand = serializers.StringRelatedField()
+    tag = serializers.StringRelatedField()
+    attribute = serializers.StringRelatedField()
     
     class Meta:
         model = models.Product
-        fields = [ 'name', 'price', 'quantity', 'image', 'description', 'category', 'tag', 'attribute', 'brand',]
+        fields = ['name', 'price', 'quantity', 'image', 'description', 'category', 'tag', 'attribute', 'brand',]
 
     def create(self, validated_data):
         user = self.context['request'].user
+        tags = validated_data.pop('tag')
+        attribute = validated_data.pop('attribute')
         product = models.Product.objects.create(
             supplier = user,
             **validated_data
         )
+        product.tag.set(tags)
+        product.attribute.set(attribute)
+        product.save()
         return product
 
 
 class ProductListSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = models.Product
-        fields = ['url','category', 'tag', 'attribute', 'name', 'price', 'image', 'published_date', 'brand']
+        fields = ['url','category', 'tag', 'attribute', 'name', 'price', 'image', 'brand']
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
